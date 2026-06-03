@@ -753,6 +753,81 @@ function parseItinerary(text) {
   const allItems = [];
   sections.forEach(section => {
     const secLines = lines.slice(section.start, section.end);
+    
+    // === 门票特殊处理：拆分成人票/学生票/儿童票/老人票 ===
+    if (section.name === '门票') {
+      let currentDate = '';
+      let currentAttraction = '';
+      let foundTickets = false;
+      
+      for (let i = 0; i < secLines.length; i++) {
+        const line = secLines[i];
+        
+        // 找日期
+        if (/^\d{2}月\d{2}日$/.test(line)) {
+          currentDate = line;
+          currentAttraction = '';
+          for (let k = i+1; k < Math.min(i+4, secLines.length); k++) {
+            const candidate = secLines[k];
+            if (!candidate.includes('¥') && !candidate.includes('比价') 
+                && !candidate.includes('取消') && !candidate.includes('退改')
+                && !candidate.includes('明细') && !candidate.includes('说明')
+                && candidate.length >= 2 && candidate.length <= 25
+                && !/份|人|张|个|台|次|套|组/.test(candidate)) {
+              currentAttraction = candidate;
+              break;
+            }
+          }
+        }
+        
+        // 找单价行：¥50 x 2份
+        const priceMatch = line.match(/¥(\d+(?:,\d+)*)\s*x\s*(\d+)\s*(份|人|张)/);
+        if (priceMatch && currentAttraction) {
+          foundTickets = true;
+          const unitPrice = parseInt(priceMatch[1].replace(/,/g, ''));
+          const qty = parseInt(priceMatch[2]);
+          
+          // 找票类型（前一行）
+          let ticketCategory = '';
+          if (i > 0) {
+            const prevLine = secLines[i-1];
+            if (prevLine.includes(currentAttraction) || prevLine.includes('门票')) {
+              ticketCategory = prevLine.replace(currentAttraction, '').replace('门票', '').trim();
+            }
+            if (!ticketCategory && i > 1) {
+              const prev2 = secLines[i-2];
+              if (prev2.includes(currentAttraction) || prev2.includes('门票')) {
+                ticketCategory = prev2.replace(currentAttraction, '').replace('门票', '').trim();
+              }
+            }
+          }
+          
+          const fullName = currentDate ? `[${currentDate}] ${currentAttraction} ${ticketCategory}` : `${currentAttraction} ${ticketCategory}`;
+          const totalPrice = unitPrice * qty;
+          
+          let tType = 'ticket_normal';
+          if (currentAttraction.includes('峨眉')) tType = 'ticket_emeishan';
+          else if (currentAttraction.includes('熊猫') || currentAttraction.includes('都江堰') || currentAttraction.includes('青城山'))
+            tType = 'ticket_panda_dujiangyan_qingcheng';
+          
+          allItems.push({
+            type: 'ticket',
+            name: fullName,
+            systemPrice: totalPrice,
+            zicaiUnitPrice: '',
+            quantity: qty,
+            rooms: 1, nights: 1,
+            ticketType: tType,
+            category: 'ticket',
+            source: 'zicai'
+          });
+        }
+      }
+      
+      if (foundTickets) return; // 门票已拆分，跳过通用逻辑
+    }
+    
+    // === 其他section保持原逻辑 ===
     for (let i = 0; i < secLines.length; i++) {
       if (secLines[i] === '总价' && i+1 < secLines.length) {
         const match = secLines[i+1].match(/¥(\d+(?:,\d+)*)/);
