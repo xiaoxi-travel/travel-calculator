@@ -1041,7 +1041,7 @@ function parseItinerary(text) {
                         section.name === '保险' ? 'insurance' : section.name === '火车' ? 'train' :
                         section.name === '机票' ? 'flight' : section.name === '门票' ? 'ticket' :
                         section.name === '酒店' ? 'hotel' : 'other',
-              source: 'zicai'
+              source: section.name === '酒店' ? 'system' : 'zicai'
             });
           }
         }
@@ -1062,22 +1062,26 @@ function renderTable() {
     const tagText = item.category === 'dijie' ? '必自采' : (item.category === 'insurance') ? '系统' : '可选';
     const qtyDisplay = item.type === 'hotel' ? `${item.rooms}间×${item.nights}晚` : item.quantity;
     const taxRate = getTaxRateText(item);
-    const showSource = ['flight','hotel','ticket','train'].includes(item.type);
+    const showSource = ['flight','hotel','ticket'].includes(item.type);
     const sourceSelect = showSource ? `
       <select class="source-select" id="source_${idx}" onchange="updateSource(${idx}, this.value)">
         <option value="zicai" ${item.source==='zicai'?'selected':''}>自采</option>
         <option value="system" ${item.source==='system'?'selected':''}>系统</option>
       </select>` : '-';
+    const showZicaiInput = ['flight','hotel','ticket'].includes(item.type);
+    const zicaiInput = showZicaiInput ? `<input type="number" id="zicai_${idx}" value="${item.zicaiUnitPrice}" placeholder="单价" onchange="updateZicai(${idx}, this.value)" oninput="this.classList.toggle('has-value', this.value !== '')">` : '<span style="color:#bbb;font-size:12px">-</span>';
+    const zicaiTotal = showZicaiInput ? `<span id="zicaiTotal_${idx}">-</span>` : '<span style="color:#bbb">-</span>';
     tr.innerHTML = `
       <td><span class="type-tag type-${item.type}">${typeName}</span></td>
       <td><div class="name-cell" title="${item.name}">${item.name}</div></td>
       <td class="price-cell price-system">¥${item.systemPrice.toLocaleString()}</td>
       <td>
+        ${showZicaiInput || showSource ? `
         <input type="number" class="qty-input" id="qty_${idx}" value="${item.quantity}" min="1" onchange="updateQuantity(${idx}, this.value)">
-        <div class="qty-detail">${qtyDisplay}</div>
+        <div class="qty-detail">${qtyDisplay}</div>` : `<div class="qty-detail" style="padding:7px 0">${qtyDisplay}</div>`}
       </td>
-      <td><input type="number" id="zicai_${idx}" value="${item.zicaiUnitPrice}" placeholder="单价" onchange="updateZicai(${idx}, this.value)" oninput="this.classList.toggle('has-value', this.value !== '')"></td>
-      <td class="price-cell" id="zicaiTotal_${idx}">-</td>
+      <td>${zicaiInput}</td>
+      <td class="price-cell" id="zicaiTotal_${idx}">${zicaiTotal}</td>
       <td>${sourceSelect}</td>
       <td class="tax-rate" id="tax_${idx}">${taxRate}</td>
       <td id="choice_${idx}">-</td>
@@ -1110,7 +1114,8 @@ function updateSource(idx, value) {
 
 function updateSummary() {
   const total = items.reduce((s, i) => s + i.systemPrice, 0);
-  const pending = items.filter(i => i.zicaiUnitPrice === '').length;
+  // 只有有来源选择的项（酒店、机票、门票）且选自采时，才需要填自采单价
+  const pending = items.filter(i => ['flight','hotel','ticket'].includes(i.type) && i.zicaiUnitPrice === '').length;
   const hotelNights = items.filter(i => i.type === 'hotel').reduce((s, i) => s + i.quantity, 0);
   document.getElementById('itemCount').textContent = items.length;
   document.getElementById('systemTotal').textContent = '¥' + total.toLocaleString();
@@ -1120,100 +1125,105 @@ function updateSummary() {
 
 function calculate() {
   let agentTotal = 0, retailTotal = 0;
+  let agentTotalTax = 0, retailTotalTax = 0;
   let agentDetail = [], retailDetail = [];
   items.forEach(item => {
     const system = item.systemPrice;
     const zicai = item.zicaiUnitPrice === '' ? null : item.zicaiUnitPrice * item.quantity;
     let agentChoice = '', agentNet = 0, retailNet = 0, agentTax = 0, retailTax = 0;
+    let agentRateText = '', retailRateText = '';
     
     // 零售逻辑：始终用系统价扣税
     if (item.category === 'dijie') {
-      retailNet = system * (1 - TAX_RATES.retail.dijie); retailTax = system * TAX_RATES.retail.dijie;
+      retailNet = system * (1 - TAX_RATES.retail.dijie); retailTax = system * TAX_RATES.retail.dijie; retailRateText = '14%';
     } else if (item.category === 'insurance') {
-      retailNet = system; retailTax = 0;
+      retailNet = system; retailTax = 0; retailRateText = '0%';
     } else if (item.category === 'flight') {
-      retailNet = system * (1 - TAX_RATES.retail.flight); retailTax = system * TAX_RATES.retail.flight;
+      retailNet = system * (1 - TAX_RATES.retail.flight); retailTax = system * TAX_RATES.retail.flight; retailRateText = '2%';
     } else if (item.category === 'train') {
-      retailNet = system * (1 - TAX_RATES.retail.train); retailTax = system * TAX_RATES.retail.train;
+      retailNet = system * (1 - TAX_RATES.retail.train); retailTax = system * TAX_RATES.retail.train; retailRateText = '1%';
     } else if (item.category === 'hotel') {
-      retailNet = system * (1 - TAX_RATES.retail.hotel); retailTax = system * TAX_RATES.retail.hotel;
+      retailNet = system * (1 - TAX_RATES.retail.hotel); retailTax = system * TAX_RATES.retail.hotel; retailRateText = '14%';
     } else if (item.category === 'ticket') {
       const rr = item.ticketType === 'ticket_emeishan' ? TAX_RATES.retail.ticket_emeishan : item.ticketType === 'ticket_panda_dujiangyan_qingcheng' ? TAX_RATES.retail.ticket_panda_dujiangyan_qingcheng : TAX_RATES.retail.ticket_normal;
       retailNet = system * (1 - rr); retailTax = system * rr;
+      if (item.ticketType === 'ticket_emeishan') retailRateText = '3.5%';
+      else if (item.ticketType === 'ticket_panda_dujiangyan_qingcheng') retailRateText = '2%';
+      else retailRateText = '7%';
     }
     
     // 代理逻辑
     if (item.category === 'dijie') {
+      // 地接/服务/活动/导游：必自采，无自采价时按系统金额扣税
       if (zicai !== null) {
-        agentNet = zicai * (1 - TAX_RATES.agent.dijie); agentTax = zicai * TAX_RATES.agent.dijie; agentChoice = '自采';
-      } else { agentNet = system; agentTax = 0; agentChoice = '系统'; }
+        agentNet = zicai * (1 - TAX_RATES.agent.dijie); agentTax = zicai * TAX_RATES.agent.dijie; agentChoice = '自采'; agentRateText = '16%';
+      } else { agentNet = system * (1 - TAX_RATES.agent.dijie); agentTax = system * TAX_RATES.agent.dijie; agentChoice = '自采(无单价)'; agentRateText = '16%'; }
     } else if (item.category === 'insurance') {
-      agentNet = system; agentTax = 0; agentChoice = '系统';
+      agentNet = system; agentTax = 0; agentChoice = '系统'; agentRateText = '0%';
     } else if (item.category === 'flight') {
       if (item.source === 'system') {
-        agentNet = system; agentTax = 0; agentChoice = '系统';
+        agentNet = system; agentTax = 0; agentChoice = '系统'; agentRateText = '0%';
       } else if (zicai !== null) {
-        agentNet = zicai * (1 - TAX_RATES.agent.flight_zicai); agentTax = zicai * TAX_RATES.agent.flight_zicai; agentChoice = '自采';
-      } else { agentNet = system; agentTax = 0; agentChoice = '系统'; }
+        agentNet = zicai * (1 - TAX_RATES.agent.flight_zicai); agentTax = zicai * TAX_RATES.agent.flight_zicai; agentChoice = '自采'; agentRateText = '4%';
+      } else { agentNet = system * (1 - TAX_RATES.agent.flight_zicai); agentTax = system * TAX_RATES.agent.flight_zicai; agentChoice = '自采(无单价)'; agentRateText = '4%'; }
     } else if (item.category === 'train') {
       if (zicai !== null) {
-        agentNet = zicai * (1 - TAX_RATES.agent.train_zicai); agentTax = zicai * TAX_RATES.agent.train_zicai; agentChoice = '自采';
-      } else { agentNet = system; agentTax = 0; agentChoice = '系统'; }
+        agentNet = zicai * (1 - TAX_RATES.agent.train_zicai); agentTax = zicai * TAX_RATES.agent.train_zicai; agentChoice = '自采'; agentRateText = '3%';
+      } else { agentNet = system * (1 - TAX_RATES.agent.train_zicai); agentTax = system * TAX_RATES.agent.train_zicai; agentChoice = '自采(无单价)'; agentRateText = '3%'; }
     } else if (item.category === 'hotel') {
       if (item.source === 'system') {
-        agentNet = system; agentTax = 0; agentChoice = '系统';
+        agentNet = system; agentTax = 0; agentChoice = '系统'; agentRateText = '0%';
       } else if (zicai !== null) {
-        agentNet = zicai * (1 - TAX_RATES.agent.hotel_zicai); agentTax = zicai * TAX_RATES.agent.hotel_zicai; agentChoice = '自采';
-      } else { agentNet = system; agentTax = 0; agentChoice = '系统'; }
+        agentNet = zicai * (1 - TAX_RATES.agent.hotel_zicai); agentTax = zicai * TAX_RATES.agent.hotel_zicai; agentChoice = '自采'; agentRateText = '16%';
+      } else { agentNet = system * (1 - TAX_RATES.agent.hotel_zicai); agentTax = system * TAX_RATES.agent.hotel_zicai; agentChoice = '自采(无单价)'; agentRateText = '16%'; }
     } else if (item.category === 'ticket') {
       const ar = item.ticketType === 'ticket_emeishan' ? TAX_RATES.agent.ticket_emeishan_zicai : item.ticketType === 'ticket_panda_dujiangyan_qingcheng' ? TAX_RATES.agent.ticket_panda_dujiangyan_qingcheng_zicai : TAX_RATES.agent.ticket_normal_zicai;
       if (item.source === 'system') {
-        agentNet = system; agentTax = 0; agentChoice = '系统';
+        agentNet = system; agentTax = 0; agentChoice = '系统'; agentRateText = '0%';
       } else if (zicai !== null) {
         agentNet = zicai * (1 - ar); agentTax = zicai * ar; agentChoice = '自采';
-      } else { agentNet = system; agentTax = 0; agentChoice = '系统'; }
+        if (item.ticketType === 'ticket_emeishan') agentRateText = '5.5%';
+        else if (item.ticketType === 'ticket_panda_dujiangyan_qingcheng') agentRateText = '4%';
+        else agentRateText = '9%';
+      } else { agentNet = system * (1 - ar); agentTax = system * ar; agentChoice = '自采(无单价)';
+        if (item.ticketType === 'ticket_emeishan') agentRateText = '5.5%';
+        else if (item.ticketType === 'ticket_panda_dujiangyan_qingcheng') agentRateText = '4%';
+        else agentRateText = '9%';
+      }
     }
     agentTotal += agentNet; retailTotal += retailNet;
+    agentTotalTax += agentTax; retailTotalTax += retailTax;
     const choiceCell = document.getElementById(`choice_${items.indexOf(item)}`);
     if (choiceCell) choiceCell.innerHTML = `<span class="choice-tag ${agentChoice === '系统' ? 'choice-system' : 'choice-zicai'}">${agentChoice}</span>`;
-    agentDetail.push({ name: item.name, net: agentNet, tax: agentTax, choice: agentChoice });
-    retailDetail.push({ name: item.name, net: retailNet, tax: retailTax });
+    agentDetail.push({ name: item.name, tax: agentTax, rateText: agentRateText });
+    retailDetail.push({ name: item.name, tax: retailTax, rateText: retailRateText });
     const taxCell = document.getElementById(`tax_${items.indexOf(item)}`);
     if (taxCell) {
-      let arText, rrText;
-      if (item.category === 'dijie') { arText = '16'; rrText = '14'; }
-      else if (item.category === 'insurance') { arText = '0'; rrText = '0'; }
-      else if (item.category === 'flight') { arText = '4'; rrText = '2'; }
-      else if (item.category === 'train') { arText = '3'; rrText = '1'; }
-      else if (item.category === 'hotel') { arText = '16'; rrText = '14'; }
-      else if (item.category === 'ticket') {
-        if (item.ticketType === 'ticket_emeishan') { arText = '5.5'; rrText = '3.5'; }
-        else if (item.ticketType === 'ticket_panda_dujiangyan_qingcheng') { arText = '4'; rrText = '2'; }
-        else { arText = '9'; rrText = '7'; }
-      }
-      taxCell.innerHTML = `<span class="agent">代理${arText}%</span><br><span class="retail">零售${rrText}%</span>`;
+      taxCell.innerHTML = `<span class="agent">代理${agentRateText}</span><br><span class="retail">零售${retailRateText}</span>`;
     }
   });
-  const diff = agentTotal - retailTotal;
-  const isAgentBetter = diff >= 0;
+  const diffTax = agentTotalTax - retailTotalTax;
+  const isAgentBetter = diffTax < 0;
   const resultBar = document.getElementById('resultBar');
   const badge = document.getElementById('resultBadge');
   const agentTotalEl = document.getElementById('agentTotal');
   const retailTotalEl = document.getElementById('retailTotal');
   const resultDiff = document.getElementById('resultDiff');
   resultBar.classList.add('show');
-  badge.textContent = isAgentBetter ? '代理更优' : '零售更优';
+  badge.textContent = isAgentBetter ? '代理扣税更少' : '零售扣税更少';
   badge.style.background = isAgentBetter ? 'var(--success)' : 'var(--ctrip-blue)';
-  agentTotalEl.textContent = '¥' + Math.round(agentTotal).toLocaleString();
-  retailTotalEl.textContent = '¥' + Math.round(retailTotal).toLocaleString();
-  resultDiff.innerHTML = isAgentBetter ? `代理比零售多赚 <strong>¥${Math.abs(diff).toLocaleString()}</strong>` : `零售比代理多赚 <strong>¥${Math.abs(diff).toLocaleString()}</strong>`;
+  agentTotalEl.innerHTML = `¥${Math.round(agentTotalTax).toLocaleString()}`;
+  retailTotalEl.innerHTML = `¥${Math.round(retailTotalTax).toLocaleString()}`;
+  resultDiff.innerHTML = isAgentBetter ? `代理比零售少扣 <strong>¥${Math.abs(diffTax).toLocaleString()}</strong>` : `零售比代理少扣 <strong>¥${Math.abs(diffTax).toLocaleString()}</strong>`;
   const drawerBody = document.getElementById('detailDrawerBody');
   let detailHtml = '';
   items.forEach((item, idx) => {
     const a = agentDetail[idx], r = retailDetail[idx];
-    detailHtml += `<div class="detail-row"><span>${item.name}</span><span style="color:#999">代理: ¥${Math.round(a.net).toLocaleString()} ${a.choice === '自采' ? '(自采)' : '(系统)'} vs 零售: ¥${Math.round(r.net).toLocaleString()}</span></div>`;
+    const diff = Math.abs(a.tax - r.tax);
+    const better = a.tax < r.tax ? '代理' : a.tax > r.tax ? '零售' : '相同';
+    detailHtml += `<div class="detail-row"><span>${item.name}</span><span style="color:#999">代理 ${a.rateText} = ¥${Math.round(a.tax).toLocaleString()} vs 零售 ${r.rateText} = ¥${Math.round(r.tax).toLocaleString()} → ${better}${diff > 0 ? ' 省¥' + Math.round(diff).toLocaleString() : ''}</span></div>`;
   });
-  detailHtml += `<div class="detail-row detail-row-total"><span>合计</span><span style="color:#999">代理: ¥${Math.round(agentTotal).toLocaleString()} vs 零售: ¥${Math.round(retailTotal).toLocaleString()}</span></div>`;
+  detailHtml += `<div class="detail-row detail-row-total"><span>合计</span><span style="color:#999">代理 ¥${Math.round(agentTotalTax).toLocaleString()} vs 零售 ¥${Math.round(retailTotalTax).toLocaleString()}</span></div>`;
   drawerBody.innerHTML = detailHtml;
 }
 
