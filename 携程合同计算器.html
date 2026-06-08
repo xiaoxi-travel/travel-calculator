@@ -72,7 +72,7 @@
     /* Main Layout - 3 columns */
     .main-layout {
       display: grid;
-      grid-template-columns: 260px 1fr 280px;
+      grid-template-columns: 210px minmax(690px, 780px) minmax(460px, 1fr);
       gap: 0;
       min-height: calc(100vh - 56px);
     }
@@ -92,7 +92,7 @@
     /* Center Panel */
     .center-panel {
       background: var(--bg-page);
-      padding: 16px 20px;
+      padding: 14px 12px;
       overflow-y: auto;
       max-height: calc(100vh - 56px);
       display: block;
@@ -102,7 +102,7 @@
     .right-panel {
       background: var(--bg-card);
       border-left: 1px solid var(--border);
-      padding: 16px;
+      padding: 14px;
       overflow-y: auto;
       max-height: calc(100vh - 56px);
       display: flex;
@@ -218,9 +218,11 @@
       font-family: 'SF Mono', monospace;
     }
     .stat-card .stat-label {
-      font-size: 11px;
+      font-size: 10px;
       color: var(--text-secondary);
       margin-top: 2px;
+      line-height: 1.35;
+      word-break: keep-all;
     }
     
     /* Right Panel */
@@ -234,13 +236,13 @@
     /* Table */
     .table-card {
       background: var(--bg-card);
-      border-radius: var(--radius);
+      border-radius: 6px;
       box-shadow: var(--shadow);
       overflow: hidden;
       width: 100%;
     }
     .table-card-header {
-      padding: 12px 16px;
+      padding: 9px 12px;
       border-bottom: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
@@ -262,20 +264,21 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 14px;
+      font-size: 13px;
+      table-layout: fixed;
     }
     th {
       background: #fafbfc;
       color: var(--text-secondary);
       font-weight: 600;
       text-align: left;
-      padding: 12px 16px;
+      padding: 8px 8px;
       border-bottom: 1px solid var(--border);
       white-space: nowrap;
       font-size: 13px;
     }
     td {
-      padding: 12px 16px;
+      padding: 8px 8px;
       border-bottom: 1px solid #f5f5f5;
       vertical-align: middle;
     }
@@ -290,7 +293,7 @@
       display: inline-flex;
       align-items: center;
       gap: 3px;
-      padding: 3px 10px;
+      padding: 3px 7px;
       border-radius: 4px;
       font-size: 12px;
       font-weight: 600;
@@ -305,14 +308,20 @@
     .type-train { background: #e6f9ff; color: #0891b2; }
     
     .name-cell {
-      font-size: 14px;
+      font-size: 13px;
+      line-height: 1.45;
       overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      white-space: normal;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
     }
     .name-cell:hover {
       white-space: normal;
       overflow: visible;
+      display: block;
     }
     .date-tag {
       font-size: 10px;
@@ -328,18 +337,18 @@
       font-weight: 500;
       color: var(--text-primary);
       white-space: nowrap;
-      font-size: 14px;
+      font-size: 13px;
     }
     .price-system {
       color: var(--text-secondary);
     }
     
     input[type="number"] {
-      width: 80px;
-      padding: 7px 10px;
+      width: 72px;
+      padding: 6px 7px;
       border: 1px solid #d0d5e3;
       border-radius: 4px;
-      font-size: 14px;
+      font-size: 13px;
       text-align: right;
       font-family: 'SF Mono', monospace;
     }
@@ -352,22 +361,48 @@
       border-color: var(--success);
       background: #f0fdf4;
     }
+    .cost-control {
+      display: block;
+    }
+    .cost-clear {
+      width: 24px;
+      height: 28px;
+      border: 1px solid #d0d5e3;
+      background: #f7f9fc;
+      color: var(--text-secondary);
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .cost-clear:hover {
+      border-color: var(--ctrip-blue);
+      color: var(--ctrip-blue);
+      background: #eef4ff;
+    }
+    .cost-total-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
     
     .qty-input {
-      width: 55px !important;
+      width: 50px !important;
     }
     .qty-detail {
-      font-size: 11px;
+      font-size: 10px;
       color: var(--text-tertiary);
       margin-top: 2px;
     }
     
     .choice-tag {
       display: inline-block;
-      padding: 4px 10px;
+      padding: 3px 6px;
       border-radius: 4px;
       font-size: 12px;
       font-weight: 600;
+      white-space: normal;
     }
     .choice-system { background: #e6efff; color: #1e40af; }
     .choice-zicai { background: #dcfce7; color: #166534; }
@@ -393,35 +428,131 @@
       cursor: pointer;
     }
 
-    /* Result Bar - Larger, at top */
+    /* Result Bar - Decision panel */
     .result-bar {
       background: white;
       border-radius: var(--radius);
-      box-shadow: var(--shadow);
+      box-shadow: 0 8px 24px rgba(18, 41, 76, 0.08);
       border: 1px solid var(--border);
       border-left: 4px solid var(--ctrip-blue);
-      padding: 16px 20px;
+      padding: 14px;
       display: none;
       flex-direction: column;
-      gap: 12px;
+      gap: 14px;
       margin-bottom: 0;
       font-size: 15px;
       width: 100%;
     }
     .result-bar.show { display: flex; }
-    .result-bar-left { display: flex; flex-direction: column; gap: 10px; }
-    .result-bar-item { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-    .result-bar-item .label { color: var(--text-secondary); font-size: 14px; }
-    .result-bar-item .value { font-family: 'SF Mono', monospace; font-weight: 700; font-size: 24px; }
-    .result-bar-item .value.positive { color: var(--success); }
-    .result-bar-item .value.negative { color: var(--danger); }
-    .result-bar-diff { font-size: 14px; color: var(--text-secondary); text-align: center; padding-top: 8px; border-top: 1px dashed var(--border); }
-    .result-bar-diff strong { color: var(--success); font-size: 16px; }
+    .result-bar-head { display: flex; flex-direction: column; gap: 8px; }
     .result-bar-badge {
-      padding: 6px 14px; border-radius: 14px; font-size: 13px; font-weight: 700;
-      background: var(--success); color: white; text-align: center;
+      padding: 12px; border-radius: 7px; font-size: 13px; font-weight: 700;
+      background: linear-gradient(135deg, #1f6fe5, #14a085); color: white; text-align: left;
+      line-height: 1.5;
+      box-shadow: 0 8px 18px rgba(37, 119, 227, 0.2);
     }
-    .result-bar-right { display: flex; justify-content: center; }
+    .best-pills { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .best-pill {
+      background: #f7f9fc; border: 1px solid var(--border); border-radius: 7px;
+      padding: 10px; font-size: 12px; color: var(--text-secondary);
+    }
+    .best-pill strong { display: block; color: var(--text-primary); font-size: 16px; margin-top: 3px; line-height: 1.35; }
+    .result-note {
+      border: 1px solid #dce8fb;
+      background: #f6f9ff;
+      border-radius: 7px;
+      padding: 10px;
+      font-size: 12px;
+      color: #345174;
+      line-height: 1.7;
+    }
+    .mode-grid { display: grid; grid-template-columns: 1fr; gap: 9px; }
+    .mode-card {
+      border: 1px solid var(--border); border-radius: 7px; padding: 11px;
+      background: #fbfcff;
+    }
+    .mode-card.best-profit { border-color: rgba(0,181,120,.45); background: #f4fffa; }
+    .mode-card.best-tax { border-color: rgba(37,119,227,.42); }
+    .mode-card-title {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      font-size: 14px; font-weight: 700; margin-bottom: 8px;
+    }
+    .mode-chip { font-size: 11px; color: white; background: var(--success); border-radius: 4px; padding: 2px 6px; }
+    .mode-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 9px 10px; }
+    .metric-label { font-size: 11px; color: var(--text-tertiary); }
+    .metric-value { font-family: 'SF Mono', monospace; font-weight: 800; font-size: 19px; margin-top: 2px; }
+    .metric-value.profit { color: var(--success); }
+    .metric-value.loss { color: var(--danger); }
+    .focus-panel {
+      border: 1px solid #d9eadf;
+      background: #fbfffc;
+      border-radius: 7px;
+      padding: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+    .focus-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .focus-title span {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      font-weight: 500;
+    }
+    .focus-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+    .focus-card {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: white;
+      padding: 9px;
+    }
+    .focus-card.empty { opacity: .55; }
+    .focus-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      margin-bottom: 7px;
+      font-weight: 700;
+    }
+    .focus-spread { color: var(--success); font-family: 'SF Mono', monospace; }
+    .focus-basics {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 8px;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+    .focus-basics strong {
+      display: block;
+      color: var(--text-primary);
+      font-size: 13px;
+      margin-top: 2px;
+      font-family: 'SF Mono', monospace;
+    }
+    .focus-mode-row {
+      display: grid;
+      grid-template-columns: 64px 1fr 1fr;
+      gap: 6px;
+      padding-top: 6px;
+      border-top: 1px dashed #edf0f5;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+    .focus-mode-row strong { color: var(--text-primary); font-family: 'SF Mono', monospace; }
+    .copy-summary {
+      width: 100%; min-height: 154px; resize: vertical; border: 1px solid var(--border);
+      border-radius: 6px; padding: 10px; font-size: 12px; line-height: 1.7;
+      color: var(--text-primary); background: #fafbfc; font-family: "Microsoft YaHei", sans-serif;
+    }
+    .result-bar-right { display: flex; justify-content: center; gap: 8px; }
 
     /* Detail Drawer - Inline in right panel */
     .detail-drawer {
@@ -491,7 +622,7 @@
     }
     
     /* Responsive */
-    @media (max-width: 900px) {
+    @media (max-width: 1240px) {
       .main-layout {
         grid-template-columns: 1fr;
       }
@@ -500,6 +631,499 @@
         border-bottom: 1px solid var(--border);
         max-height: none;
       }
+      .right-panel {
+        max-height: none;
+      }
+    }
+
+    /* Professional product theme */
+    :root {
+      --ctrip-blue: #1769e8;
+      --ctrip-dark: #0f4fb5;
+      --ctrip-light: #eef6ff;
+      --success: #0b9f67;
+      --danger: #cf2f2f;
+      --warning: #b7791f;
+      --text-primary: #14213d;
+      --text-secondary: #526070;
+      --text-tertiary: #8994a3;
+      --border: #d8e3f1;
+      --bg-page: #f8fbff;
+      --bg-card: #fff;
+      --shadow: 0 12px 36px rgba(20, 33, 61, 0.08);
+      --shadow-hover: 0 16px 40px rgba(23, 105, 232, 0.18);
+      --radius: 14px;
+    }
+
+    body {
+      background: linear-gradient(180deg, #eaf4ff 0, #f8fbff 180px), #f8fbff;
+      color: var(--text-primary);
+      font-size: 14px;
+    }
+
+    .header {
+      height: 64px;
+      padding: 0 28px;
+      background: linear-gradient(90deg, #0f57d6 0%, #1769e8 48%, #0c87c9 100%);
+      box-shadow: 0 8px 28px rgba(15, 79, 181, .18);
+    }
+
+    .header-logo {
+      font-size: 23px;
+      letter-spacing: .5px;
+    }
+
+    .header-logo svg {
+      width: 30px;
+      height: 30px;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,.16));
+    }
+
+    .header-subtitle {
+      border-left-color: rgba(255,255,255,.38);
+      opacity: .95;
+      font-size: 13px;
+    }
+
+    .main-layout {
+      grid-template-columns: 228px minmax(740px, 820px) minmax(520px, 1fr);
+      gap: 14px;
+      height: calc(100vh - 64px);
+      min-height: 0;
+      padding: 14px 16px 16px;
+      background: #f8fbff;
+      overflow: hidden;
+    }
+
+    .left-panel,
+    .center-panel,
+    .right-panel {
+      height: calc(100vh - 94px);
+      max-height: none;
+      min-height: 0;
+      border: 1px solid #d9e3f1;
+      border-radius: 18px;
+      background: rgba(255,255,255,.96);
+      box-shadow: 0 14px 42px rgba(20,33,61,.07);
+      overflow: auto;
+    }
+
+    .left-panel {
+      padding: 16px;
+      gap: 16px;
+      border-right: 1px solid #d9e3f1;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    }
+
+    .center-panel {
+      padding: 0;
+      background: #ffffff;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    .right-panel {
+      padding: 16px 18px;
+      border-left: 1px solid #d9e3f1;
+      background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+    }
+
+    .panel-section {
+      background: #ffffff;
+      border: 1px solid #e4ebf5;
+      border-radius: 14px;
+      padding: 12px;
+      overflow: hidden;
+    }
+
+    .panel-section-title {
+      color: #14213d;
+      font-size: 13px;
+      letter-spacing: .2px;
+      text-transform: none;
+    }
+
+    .paste-box textarea {
+      height: 138px;
+      border: 1px solid #c9d8ee;
+      background: #fbfdff;
+      border-radius: 14px;
+      box-shadow: inset 0 1px 2px rgba(20,33,61,.03);
+    }
+
+    .paste-box textarea:focus {
+      border-color: #1769e8;
+      box-shadow: 0 0 0 4px rgba(23,105,232,.12);
+    }
+
+    .btn {
+      border-radius: 12px;
+      font-weight: 700;
+    }
+
+    .btn-primary {
+      background: linear-gradient(180deg, #2b7cff, #1769e8);
+      box-shadow: 0 8px 18px rgba(23,105,232,.22);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(180deg, #1769e8, #0f4fb5);
+      box-shadow: 0 12px 24px rgba(23,105,232,.26);
+    }
+
+    .btn-secondary {
+      background: #f6f9fd;
+      color: #42526a;
+      border: 1px solid #dfe8f4;
+    }
+
+    .tips-box {
+      background: linear-gradient(180deg, #f4f9ff, #fff);
+      border: 1px solid #d8e7fb;
+      border-left: 4px solid #1769e8;
+      border-radius: 12px;
+      color: #234c84;
+      box-shadow: none;
+    }
+
+    .stats-grid {
+      gap: 8px;
+      background: #f3f8ff;
+      border: 1px solid #ccd9ea;
+      border-radius: 16px;
+      padding: 7px;
+      overflow: hidden;
+    }
+
+    .stat-card {
+      min-width: 0;
+      border-radius: 12px;
+      border: 1px solid #d2deed;
+      background: #fff;
+      box-shadow: none;
+      padding: 10px 4px;
+      overflow: visible;
+    }
+
+    .stat-card .stat-value {
+      color: #1769e8;
+      font-size: 20px;
+      font-family: "DIN Alternate", "SF Mono", Consolas, monospace;
+      letter-spacing: 0;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
+    #systemTotal {
+      font-size: 17px;
+    }
+
+    .stat-card .stat-label {
+      color: #637083;
+      overflow-wrap: anywhere;
+    }
+
+    .table-card {
+      height: auto;
+      min-height: 100%;
+      border: 1px solid #cfdbea;
+      border-radius: 18px;
+      box-shadow: none;
+      overflow-x: hidden;
+      overflow-y: visible;
+    }
+
+    .table-card-header {
+      padding: 16px 18px;
+      background: linear-gradient(180deg, #f9fbff, #f4f8fd);
+      border-bottom: 1px solid #d5deeb;
+    }
+
+    .table-card-header h3 {
+      font-size: 15px;
+      color: #14213d;
+      letter-spacing: .1px;
+    }
+
+    .table-card-header span {
+      color: #8a94a6 !important;
+    }
+
+    table {
+      font-size: 13px;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: #fff;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #eaf1f9;
+      color: #3f5066;
+      font-size: 12px;
+      padding: 10px 7px;
+      border-right: 1px solid #ccd8e8;
+      border-bottom: 1px solid #bfcde0;
+    }
+
+    th:last-child {
+      border-right: none;
+    }
+
+    td {
+      padding: 10px 7px;
+      border-right: 1px solid #dde6f1;
+      border-bottom: 1px solid #dfe7f1;
+      background: #fff;
+    }
+
+    td:last-child {
+      border-right: none;
+    }
+
+    tbody tr:nth-child(even) td {
+      background: #f8fbff;
+    }
+
+    tr:hover td {
+      background: #edf6ff;
+    }
+
+    .name-cell {
+      color: #14213d;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .type-tag,
+    .choice-tag {
+      border-radius: 999px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .type-tag {
+      padding: 3px 8px;
+    }
+
+    .choice-tag {
+      padding: 4px 8px;
+    }
+
+    .price-cell,
+    .metric-value,
+    .focus-spread,
+    .focus-basics strong,
+    .focus-mode-row strong {
+      font-family: "DIN Alternate", "SF Mono", Consolas, monospace;
+    }
+
+    input[type="number"],
+    .source-select {
+      border-radius: 10px;
+      border-color: #cbd8ea;
+      background: #fff;
+    }
+
+    input[type="number"]:focus,
+    .source-select:focus {
+      border-color: #1769e8;
+      box-shadow: 0 0 0 4px rgba(23,105,232,.1);
+    }
+
+    input[type="number"].has-value {
+      border-color: #0b9f67;
+      background: #f2fff8;
+      color: #095c3e;
+    }
+
+    .cost-total-wrap {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 22px;
+      align-items: center;
+      gap: 4px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .cost-total-wrap input[type="number"] {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .cost-clear {
+      width: 22px;
+      min-width: 22px;
+      height: 28px;
+      border-radius: 9px;
+      border-color: #d6e0ed;
+      background: #f8fafd;
+    }
+
+    .source-select {
+      width: 58px;
+      max-width: 100%;
+      padding: 4px 3px;
+      font-size: 12px;
+    }
+
+    .tax-rate {
+      white-space: normal;
+      line-height: 1.5;
+      font-size: 11px;
+    }
+
+    .result-bar {
+      border-radius: 18px;
+      border: 1px solid #d6e3f4;
+      border-left: 1px solid #d6e3f4;
+      background: #fff;
+      box-shadow: 0 14px 40px rgba(20,33,61,.08);
+      padding: 16px;
+      overflow: hidden;
+    }
+
+    .result-bar-badge {
+      border-radius: 14px;
+      padding: 14px 16px;
+      background: linear-gradient(90deg, rgba(255,255,255,.16), rgba(255,255,255,0)), linear-gradient(135deg, #1769e8, #0b9f9a);
+      box-shadow: 0 12px 28px rgba(23,105,232,.22);
+      font-size: 15px;
+      text-align: center;
+    }
+
+    .best-pills,
+    .mode-grid,
+    .focus-grid {
+      border: 1px solid #ccd9ea;
+      border-radius: 16px;
+      padding: 8px;
+      overflow: hidden;
+    }
+
+    .best-pills {
+      gap: 10px;
+      background: #f3f8ff;
+    }
+
+    .best-pill {
+      border-radius: 14px;
+      border: 1px solid #d2deed;
+      background: #ffffff;
+      padding: 12px;
+      min-width: 0;
+    }
+
+    .best-pill strong {
+      color: #14213d;
+      font-size: 18px;
+      font-family: "DIN Alternate", "SF Mono", Consolas, monospace;
+    }
+
+    .result-note {
+      border: 1px solid #ccd9ea;
+      background: #f4f8ff;
+      border-radius: 14px;
+      color: #31527c;
+    }
+
+    .mode-grid {
+      background: #f7faff;
+    }
+
+    .mode-card {
+      border-radius: 16px;
+      border: 1px solid #d2deed;
+      background: #fff;
+      padding: 14px;
+      box-shadow: none;
+      overflow: hidden;
+    }
+
+    .mode-card.best-tax {
+      border-color: #91bfff;
+      background: #f6faff;
+    }
+
+    .mode-card.best-profit {
+      border-color: #78d7ad;
+      background: #f4fff9;
+    }
+
+    .mode-card-title {
+      font-size: 15px;
+    }
+
+    .mode-chip {
+      border-radius: 999px;
+      padding: 3px 8px;
+      background: #0b9f67;
+    }
+
+    .metric-label {
+      color: #7a8798;
+    }
+
+    .metric-value {
+      font-size: 21px;
+      color: #14213d;
+    }
+
+    .metric-value.profit {
+      color: #0b9f67;
+    }
+
+    .metric-value.loss {
+      color: #cf2f2f;
+    }
+
+    .focus-panel {
+      border-radius: 16px;
+      border-color: #cfe9d9;
+      background: #f5fbf7;
+      overflow: hidden;
+    }
+
+    .focus-title {
+      font-size: 14px;
+    }
+
+    .focus-grid {
+      background: rgba(255,255,255,.65);
+      border-color: #dceee3;
+    }
+
+    .focus-card {
+      border-radius: 13px;
+      border-color: #d2deed;
+      box-shadow: none;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .copy-summary {
+      border-radius: 14px;
+      border-color: #ccd9ea;
+      background: #f7f9fc;
+    }
+
+    .detail-drawer {
+      border-radius: 16px;
+      box-shadow: none;
+      border-color: #ccd9ea;
+      overflow: hidden;
+    }
+
+    @media (max-width: 1240px) {
+      .main-layout {
+        grid-template-columns: 1fr;
+        padding: 12px;
+      }
+
+      .left-panel,
+      .center-panel,
       .right-panel {
         max-height: none;
       }
@@ -569,7 +1193,7 @@
         </div>
         <div class="stat-card">
           <div class="stat-value" id="pendingZicai">0</div>
-          <div class="stat-label">待填单价</div>
+          <div class="stat-label" id="pendingZicaiLabel">待填成本</div>
         </div>
         <div class="stat-card">
           <div class="stat-value" id="hotelNights">0</div>
@@ -607,15 +1231,15 @@
       <table>
         <thead>
           <tr>
-            <th style="width:55px">类型</th>
+            <th style="width:54px">类型</th>
             <th>名称</th>
-            <th style="width:85px">系统价</th>
-            <th style="width:60px">数量</th>
-            <th style="width:85px">自采单价</th>
-            <th style="width:85px">自采总价</th>
-            <th style="width:70px">来源</th>
-            <th style="width:70px">扣税</th>
-            <th style="width:55px">选择</th>
+            <th style="width:82px">系统价</th>
+            <th style="width:68px">数量</th>
+            <th style="width:88px">成本</th>
+            <th style="width:112px">成本合计</th>
+            <th style="width:78px">来源</th>
+            <th style="width:90px">扣税</th>
+            <th style="width:72px">最优</th>
           </tr>
         </thead>
         <tbody id="itemsBody"></tbody>
@@ -627,21 +1251,24 @@
   <!-- Right Panel -->
   <div class="right-panel">
     
-    <!-- Result Bar -->
+<!-- Result Bar -->
     <div class="result-bar" id="resultBar">
-      <div class="result-bar-left">
-        <span id="resultBadge" class="result-bar-badge">代理更优</span>
-        <div class="result-bar-item">
-          <span class="label">代理</span>
-          <span class="value positive" id="agentTotal">¥0</span>
+      <div class="result-bar-head">
+        <span id="resultBadge" class="result-bar-badge">等待计算</span>
+        <div class="best-pills">
+          <div class="best-pill">扣税最低<strong id="bestTaxText">-</strong></div>
+          <div class="best-pill">利润最高<strong id="bestProfitText">-</strong></div>
         </div>
-        <div class="result-bar-item">
-          <span class="label">零售</span>
-          <span class="value" id="retailTotal">¥0</span>
-        </div>
-        <span class="result-bar-diff" id="resultDiff"></span>
       </div>
+      <div class="result-note" id="resultNote">计算后显示关键差异</div>
+      <div class="mode-grid" id="modeGrid"></div>
+      <div class="focus-panel" id="focusPanel" style="display:none">
+        <div class="focus-title">重点利润项 <span>酒店 / 车费 / 机票</span></div>
+        <div class="focus-grid" id="focusGrid"></div>
+      </div>
+      <textarea class="copy-summary" id="copySummary" readonly placeholder="计算后生成可复制结果"></textarea>
       <div class="result-bar-right">
+        <button class="btn btn-secondary btn-sm" onclick="copySummary()">复制结论</button>
         <button class="btn btn-secondary btn-sm" onclick="toggleDetail()">详细对比</button>
       </div>
     </div>
@@ -688,6 +1315,177 @@ function getTaxRateText(item) {
     else { agentRate = '9%'; retailRate = '7%'; }
   }
   return `<span class="agent">代理${agentRate}</span><br><span class="retail">零售${retailRate}</span>`;
+}
+
+function calculateComparison(items) {
+  const modes = {
+    retailZicai: createMode('retailZicai', '零售自采'),
+    agentSystem: createMode('agentSystem', '代理系统'),
+    agentZicai: createMode('agentZicai', '代理自采')
+  };
+  items.forEach(item => {
+    addLine(modes.retailZicai, item, 'retailZicai');
+    addLine(modes.agentSystem, item, 'agentSystem');
+    addLine(modes.agentZicai, item, 'agentZicai');
+  });
+  Object.values(modes).forEach(mode => {
+    mode.profit = mode.revenue - mode.tax - mode.cost;
+  });
+  return {
+    modes,
+    focus: calculateFocus(items),
+    best: {
+      tax: pickBest(modes, 'tax', 'min'),
+      profit: pickBest(modes, 'profit', 'max')
+    }
+  };
+}
+
+function calculateFocus(items) {
+  const groups = {
+    hotel: createFocusGroup('酒店'),
+    transport: createFocusGroup('车费'),
+    flight: createFocusGroup('机票')
+  };
+  items.forEach(item => {
+    const key = getFocusKey(item);
+    if (!key) return;
+    addFocusLine(groups[key], item);
+  });
+  return groups;
+}
+
+function createFocusGroup(label) {
+  return {
+    label,
+    marked: 0,
+    cost: 0,
+    spread: 0,
+    modes: {
+      retailZicai: { label: '零售自采', tax: 0, profit: 0 },
+      agentSystem: { label: '代理系统', tax: 0, profit: 0 },
+      agentZicai: { label: '代理自采', tax: 0, profit: 0 }
+    }
+  };
+}
+
+function getFocusKey(item) {
+  if (item.category === 'hotel') return 'hotel';
+  if (item.category === 'flight') return 'flight';
+  if (item.type === 'dijie' && /车|交通|用车|接送/.test(item.name || '')) return 'transport';
+  return null;
+}
+
+function addFocusLine(group, item) {
+  const marked = Number(item.systemPrice) || 0;
+  const enteredCost = getEnteredOrSystemCost(item);
+  group.marked += marked;
+  group.cost += enteredCost;
+  group.spread += marked - enteredCost;
+  ['retailZicai', 'agentSystem', 'agentZicai'].forEach(modeKey => {
+    const rate = getRate(item, modeKey);
+    const tax = marked * rate;
+    const cost = getCost(item, modeKey);
+    group.modes[modeKey].tax += tax;
+    group.modes[modeKey].profit += marked - tax - cost;
+  });
+}
+
+function getEnteredOrSystemCost(item) {
+  if (!hasEnteredCost(item)) return Number(item.systemPrice) || 0;
+  return (Number(item.zicaiUnitPrice) || 0) * (Number(item.quantity) || 1);
+}
+
+function hasEnteredCost(item) {
+  return item.zicaiUnitPrice !== '' && item.zicaiUnitPrice != null && Number(item.zicaiUnitPrice) > 0;
+}
+
+function createMode(key, label) {
+  return { key, label, revenue: 0, tax: 0, cost: 0, profit: 0, lines: [] };
+}
+
+function addLine(mode, item, modeKey) {
+  const marked = Number(item.systemPrice) || 0;
+  const rate = getRate(item, modeKey);
+  const tax = marked * rate;
+  const cost = getCost(item, modeKey);
+  mode.revenue += marked;
+  mode.tax += tax;
+  mode.cost += cost;
+  const profit = marked - tax - cost;
+  mode.lines.push({ name: item.name, type: item.type, category: item.category, marked, rate, tax, cost, profit });
+}
+
+function getRate(item, modeKey) {
+  if (modeKey === 'retailZicai') return getRetailRate(item);
+  if (modeKey === 'agentSystem') return getAgentSystemRate(item);
+  return getAgentZicaiRate(item);
+}
+
+function getRetailRate(item) {
+  if (item.category === 'hotel') return TAX_RATES.retail.hotel;
+  if (item.category === 'ticket') return getTicketRate(item, 'retail');
+  if (item.category === 'flight') return TAX_RATES.retail.flight;
+  if (item.category === 'train') return TAX_RATES.retail.train;
+  if (item.category === 'insurance') return TAX_RATES.retail.insurance;
+  if (item.category === 'dijie') return TAX_RATES.retail.dijie;
+  return 0;
+}
+
+function getAgentSystemRate(item) {
+  if (item.category === 'hotel') return item.source === 'zicai' ? TAX_RATES.agent.hotel_zicai : 0;
+  if (item.category === 'flight') return item.source === 'zicai' ? TAX_RATES.agent.flight_zicai : 0;
+  if (item.category === 'insurance') return 0;
+  if (item.category === 'ticket') return getTicketRate(item, 'agent');
+  if (item.category === 'train') return TAX_RATES.agent.train_zicai;
+  if (item.category === 'dijie') return TAX_RATES.agent.dijie;
+  return 0;
+}
+
+function getAgentZicaiRate(item) {
+  if (item.category === 'hotel') return TAX_RATES.agent.hotel_zicai;
+  if (item.category === 'ticket') return getTicketRate(item, 'agent');
+  if (item.category === 'flight') return TAX_RATES.agent.flight_zicai;
+  if (item.category === 'train') return TAX_RATES.agent.train_zicai;
+  if (item.category === 'insurance') return TAX_RATES.agent.insurance;
+  if (item.category === 'dijie') return TAX_RATES.agent.dijie;
+  return 0;
+}
+
+function getTicketRate(item, contract) {
+  const ticketType = item.ticketType || 'ticket_normal';
+  if (contract === 'retail') {
+    if (ticketType === 'ticket_emeishan') return TAX_RATES.retail.ticket_emeishan;
+    if (ticketType === 'ticket_panda_dujiangyan_qingcheng') return TAX_RATES.retail.ticket_panda_dujiangyan_qingcheng;
+    return TAX_RATES.retail.ticket_normal;
+  }
+  if (ticketType === 'ticket_emeishan') return TAX_RATES.agent.ticket_emeishan_zicai;
+  if (ticketType === 'ticket_panda_dujiangyan_qingcheng') return TAX_RATES.agent.ticket_panda_dujiangyan_qingcheng_zicai;
+  return TAX_RATES.agent.ticket_normal_zicai;
+}
+
+function getCost(item, modeKey) {
+  if (item.type === 'service') return 0;
+  if (modeKey === 'agentSystem' && ['hotel', 'flight'].includes(item.category) && item.source !== 'zicai') return Number(item.systemPrice) || 0;
+  const unit = hasEnteredCost(item) ? Number(item.zicaiUnitPrice) || 0 : Number(item.systemPrice) || 0;
+  const quantity = hasEnteredCost(item) ? Number(item.quantity) || 1 : 1;
+  return unit * quantity;
+}
+
+function pickBest(modes, field, direction) {
+  return Object.values(modes).reduce((best, mode) => {
+    if (!best) return { key: mode.key, label: mode.label, value: mode[field] };
+    const better = direction === 'min' ? mode[field] < best.value : mode[field] > best.value;
+    return better ? { key: mode.key, label: mode.label, value: mode[field] } : best;
+  }, null);
+}
+
+function money(value) {
+  return '¥' + Math.round(value).toLocaleString();
+}
+
+function percent(value) {
+  return (value * 100).toFixed(value * 100 % 1 === 0 ? 0 : 1) + '%';
 }
 
 let items = [];
@@ -1068,9 +1866,9 @@ function renderTable() {
         <option value="zicai" ${item.source==='zicai'?'selected':''}>自采</option>
         <option value="system" ${item.source==='system'?'selected':''}>系统</option>
       </select>` : '-';
-    const showZicaiInput = ['flight','hotel','ticket'].includes(item.type);
-    const zicaiInput = showZicaiInput ? `<input type="number" id="zicai_${idx}" value="${item.zicaiUnitPrice}" placeholder="单价" onchange="updateZicai(${idx}, this.value)" oninput="this.classList.toggle('has-value', this.value !== '')">` : '<span style="color:#bbb;font-size:12px">-</span>';
-    const zicaiTotal = showZicaiInput ? `<span id="zicaiTotal_${idx}">-</span>` : '<span style="color:#bbb">-</span>';
+    const showZicaiInput = ['flight','hotel','ticket'].includes(item.type) || (item.category === 'dijie' && item.type !== 'service' && item.type !== 'activity');
+    const zicaiInput = showZicaiInput ? `<span class="cost-control"><input type="number" id="zicai_${idx}" value="${item.zicaiUnitPrice}" placeholder="成本" onchange="updateZicai(${idx}, this.value)" oninput="this.classList.toggle('has-value', this.value !== '' && Number(this.value) > 0)"></span>` : `<span style="color:#bbb;font-size:12px">${item.type === 'service' ? '无成本' : '-'}</span>`;
+    const zicaiTotal = showZicaiInput ? `<span class="cost-total-wrap"><span id="zicaiTotal_${idx}">-</span><button class="cost-clear" type="button" title="清空成本，按系统标价核算" onclick="clearZicai(${idx})">清</button></span>` : '<span style="color:#bbb">-</span>';
     tr.innerHTML = `
       <td><span class="type-tag type-${item.type}">${typeName}</span></td>
       <td><div class="name-cell" title="${item.name}">${item.name}</div></td>
@@ -1081,7 +1879,7 @@ function renderTable() {
         <div class="qty-detail">${qtyDisplay}</div>` : `<div class="qty-detail" style="padding:7px 0">${qtyDisplay}</div>`}
       </td>
       <td>${zicaiInput}</td>
-      <td class="price-cell" id="zicaiTotal_${idx}">${zicaiTotal}</td>
+      <td class="price-cell">${zicaiTotal}</td>
       <td>${sourceSelect}</td>
       <td class="tax-rate" id="tax_${idx}">${taxRate}</td>
       <td id="choice_${idx}">-</td>
@@ -1092,139 +1890,207 @@ function renderTable() {
 
 function updateQuantity(idx, value) {
   items[idx].quantity = parseInt(value) || 1;
-  if (items[idx].zicaiUnitPrice !== '') {
+  if (hasEnteredCost(items[idx])) {
     const totalCell = document.getElementById(`zicaiTotal_${idx}`);
     totalCell.textContent = '¥' + (items[idx].zicaiUnitPrice * items[idx].quantity).toLocaleString();
   }
   updateSummary();
+  if (document.getElementById('resultBar').classList.contains('show')) calculate();
 }
 
 function updateZicai(idx, value) {
-  items[idx].zicaiUnitPrice = value === '' ? '' : parseFloat(value);
+  const parsed = parseFloat(value);
+  items[idx].zicaiUnitPrice = value === '' || !Number.isFinite(parsed) || parsed <= 0 ? '' : parsed;
+  const input = document.getElementById(`zicai_${idx}`);
+  if (input && items[idx].zicaiUnitPrice === '') {
+    input.value = '';
+    input.classList.remove('has-value');
+  }
   const totalCell = document.getElementById(`zicaiTotal_${idx}`);
   if (totalCell) {
-    totalCell.textContent = value === '' ? '-' : '¥' + (parseFloat(value) * items[idx].quantity).toLocaleString();
+    totalCell.textContent = items[idx].zicaiUnitPrice === '' ? '-' : '¥' + (items[idx].zicaiUnitPrice * items[idx].quantity).toLocaleString();
   }
   updateSummary();
+  if (document.getElementById('resultBar').classList.contains('show')) calculate();
+}
+
+function clearZicai(idx) {
+  items[idx].zicaiUnitPrice = '';
+  const input = document.getElementById(`zicai_${idx}`);
+  if (input) {
+    input.value = '';
+    input.classList.remove('has-value');
+  }
+  const totalCell = document.getElementById(`zicaiTotal_${idx}`);
+  if (totalCell) totalCell.textContent = '-';
+  updateSummary();
+  if (document.getElementById('resultBar').classList.contains('show')) calculate();
 }
 
 function updateSource(idx, value) {
   items[idx].source = value;
+  if (document.getElementById('resultBar').classList.contains('show')) calculate();
 }
 
 function updateSummary() {
   const total = items.reduce((s, i) => s + i.systemPrice, 0);
-  // 只有有来源选择的项（酒店、机票、门票）且选自采时，才需要填自采单价
-  const pending = items.filter(i => ['flight','hotel','ticket'].includes(i.type) && i.zicaiUnitPrice === '').length;
+  const fillableCostItems = items.filter(isFillableCostItem);
+  const pending = fillableCostItems.filter(i => !hasEnteredCost(i)).length;
   const hotelNights = items.filter(i => i.type === 'hotel').reduce((s, i) => s + i.quantity, 0);
   document.getElementById('itemCount').textContent = items.length;
   document.getElementById('systemTotal').textContent = '¥' + total.toLocaleString();
   document.getElementById('pendingZicai').textContent = pending;
+  document.getElementById('pendingZicaiLabel').textContent = `待填成本 · 共${fillableCostItems.length}项`;
   document.getElementById('hotelNights').textContent = hotelNights;
 }
 
+function isFillableCostItem(item) {
+  return ['flight', 'hotel', 'ticket'].includes(item.type) || (item.category === 'dijie' && item.type !== 'service' && item.type !== 'activity');
+}
+
 function calculate() {
-  let agentTotal = 0, retailTotal = 0;
-  let agentTotalTax = 0, retailTotalTax = 0;
-  let agentDetail = [], retailDetail = [];
-  items.forEach(item => {
-    const system = item.systemPrice;
-    const zicai = item.zicaiUnitPrice === '' ? null : item.zicaiUnitPrice * item.quantity;
-    let agentChoice = '', agentNet = 0, retailNet = 0, agentTax = 0, retailTax = 0;
-    let agentRateText = '', retailRateText = '';
-    
-    // 零售逻辑：始终用系统价扣税
-    if (item.category === 'dijie') {
-      retailNet = system * (1 - TAX_RATES.retail.dijie); retailTax = system * TAX_RATES.retail.dijie; retailRateText = '14%';
-    } else if (item.category === 'insurance') {
-      retailNet = system; retailTax = 0; retailRateText = '0%';
-    } else if (item.category === 'flight') {
-      retailNet = system * (1 - TAX_RATES.retail.flight); retailTax = system * TAX_RATES.retail.flight; retailRateText = '2%';
-    } else if (item.category === 'train') {
-      retailNet = system * (1 - TAX_RATES.retail.train); retailTax = system * TAX_RATES.retail.train; retailRateText = '1%';
-    } else if (item.category === 'hotel') {
-      retailNet = system * (1 - TAX_RATES.retail.hotel); retailTax = system * TAX_RATES.retail.hotel; retailRateText = '14%';
-    } else if (item.category === 'ticket') {
-      const rr = item.ticketType === 'ticket_emeishan' ? TAX_RATES.retail.ticket_emeishan : item.ticketType === 'ticket_panda_dujiangyan_qingcheng' ? TAX_RATES.retail.ticket_panda_dujiangyan_qingcheng : TAX_RATES.retail.ticket_normal;
-      retailNet = system * (1 - rr); retailTax = system * rr;
-      if (item.ticketType === 'ticket_emeishan') retailRateText = '3.5%';
-      else if (item.ticketType === 'ticket_panda_dujiangyan_qingcheng') retailRateText = '2%';
-      else retailRateText = '7%';
-    }
-    
-    // 代理逻辑
-    if (item.category === 'dijie') {
-      // 地接/服务/活动/导游：必自采，无自采价时按系统金额扣税
-      if (zicai !== null) {
-        agentNet = zicai * (1 - TAX_RATES.agent.dijie); agentTax = zicai * TAX_RATES.agent.dijie; agentChoice = '自采'; agentRateText = '16%';
-      } else { agentNet = system * (1 - TAX_RATES.agent.dijie); agentTax = system * TAX_RATES.agent.dijie; agentChoice = '自采(无单价)'; agentRateText = '16%'; }
-    } else if (item.category === 'insurance') {
-      agentNet = system; agentTax = 0; agentChoice = '系统'; agentRateText = '0%';
-    } else if (item.category === 'flight') {
-      if (item.source === 'system') {
-        agentNet = system; agentTax = 0; agentChoice = '系统'; agentRateText = '0%';
-      } else if (zicai !== null) {
-        agentNet = zicai * (1 - TAX_RATES.agent.flight_zicai); agentTax = zicai * TAX_RATES.agent.flight_zicai; agentChoice = '自采'; agentRateText = '4%';
-      } else { agentNet = system * (1 - TAX_RATES.agent.flight_zicai); agentTax = system * TAX_RATES.agent.flight_zicai; agentChoice = '自采(无单价)'; agentRateText = '4%'; }
-    } else if (item.category === 'train') {
-      if (zicai !== null) {
-        agentNet = zicai * (1 - TAX_RATES.agent.train_zicai); agentTax = zicai * TAX_RATES.agent.train_zicai; agentChoice = '自采'; agentRateText = '3%';
-      } else { agentNet = system * (1 - TAX_RATES.agent.train_zicai); agentTax = system * TAX_RATES.agent.train_zicai; agentChoice = '自采(无单价)'; agentRateText = '3%'; }
-    } else if (item.category === 'hotel') {
-      if (item.source === 'system') {
-        agentNet = system; agentTax = 0; agentChoice = '系统'; agentRateText = '0%';
-      } else if (zicai !== null) {
-        agentNet = zicai * (1 - TAX_RATES.agent.hotel_zicai); agentTax = zicai * TAX_RATES.agent.hotel_zicai; agentChoice = '自采'; agentRateText = '16%';
-      } else { agentNet = system * (1 - TAX_RATES.agent.hotel_zicai); agentTax = system * TAX_RATES.agent.hotel_zicai; agentChoice = '自采(无单价)'; agentRateText = '16%'; }
-    } else if (item.category === 'ticket') {
-      const ar = item.ticketType === 'ticket_emeishan' ? TAX_RATES.agent.ticket_emeishan_zicai : item.ticketType === 'ticket_panda_dujiangyan_qingcheng' ? TAX_RATES.agent.ticket_panda_dujiangyan_qingcheng_zicai : TAX_RATES.agent.ticket_normal_zicai;
-      if (item.source === 'system') {
-        agentNet = system; agentTax = 0; agentChoice = '系统'; agentRateText = '0%';
-      } else if (zicai !== null) {
-        agentNet = zicai * (1 - ar); agentTax = zicai * ar; agentChoice = '自采';
-        if (item.ticketType === 'ticket_emeishan') agentRateText = '5.5%';
-        else if (item.ticketType === 'ticket_panda_dujiangyan_qingcheng') agentRateText = '4%';
-        else agentRateText = '9%';
-      } else { agentNet = system * (1 - ar); agentTax = system * ar; agentChoice = '自采(无单价)';
-        if (item.ticketType === 'ticket_emeishan') agentRateText = '5.5%';
-        else if (item.ticketType === 'ticket_panda_dujiangyan_qingcheng') agentRateText = '4%';
-        else agentRateText = '9%';
-      }
-    }
-    agentTotal += agentNet; retailTotal += retailNet;
-    agentTotalTax += agentTax; retailTotalTax += retailTax;
-    const choiceCell = document.getElementById(`choice_${items.indexOf(item)}`);
-    if (choiceCell) choiceCell.innerHTML = `<span class="choice-tag ${agentChoice === '系统' ? 'choice-system' : 'choice-zicai'}">${agentChoice}</span>`;
-    agentDetail.push({ name: item.name, tax: agentTax, rateText: agentRateText });
-    retailDetail.push({ name: item.name, tax: retailTax, rateText: retailRateText });
-    const taxCell = document.getElementById(`tax_${items.indexOf(item)}`);
-    if (taxCell) {
-      taxCell.innerHTML = `<span class="agent">代理${agentRateText}</span><br><span class="retail">零售${retailRateText}</span>`;
-    }
-  });
-  const diffTax = agentTotalTax - retailTotalTax;
-  const isAgentBetter = diffTax < 0;
+  const result = calculateComparison(items);
+  renderResult(result);
+  renderDetail(result);
+  updateRowHints(result);
+}
+
+function renderResult(result) {
   const resultBar = document.getElementById('resultBar');
-  const badge = document.getElementById('resultBadge');
-  const agentTotalEl = document.getElementById('agentTotal');
-  const retailTotalEl = document.getElementById('retailTotal');
-  const resultDiff = document.getElementById('resultDiff');
   resultBar.classList.add('show');
-  badge.textContent = isAgentBetter ? '代理扣税更少' : '零售扣税更少';
-  badge.style.background = isAgentBetter ? 'var(--success)' : 'var(--ctrip-blue)';
-  agentTotalEl.innerHTML = `¥${Math.round(agentTotalTax).toLocaleString()}`;
-  retailTotalEl.innerHTML = `¥${Math.round(retailTotalTax).toLocaleString()}`;
-  resultDiff.innerHTML = isAgentBetter ? `代理比零售少扣 <strong>¥${Math.abs(diffTax).toLocaleString()}</strong>` : `零售比代理少扣 <strong>¥${Math.abs(diffTax).toLocaleString()}</strong>`;
+  document.getElementById('resultBadge').textContent = `建议关注：${result.best.profit.label}`;
+  document.getElementById('bestTaxText').textContent = `${result.best.tax.label} ${money(result.best.tax.value)}`;
+  document.getElementById('bestProfitText').textContent = `${result.best.profit.label} ${money(result.best.profit.value)}`;
+  document.getElementById('resultNote').innerHTML = buildDecisionNote(result);
+
+  const modeGrid = document.getElementById('modeGrid');
+  modeGrid.innerHTML = '';
+  Object.values(result.modes).forEach(mode => {
+    const card = document.createElement('div');
+    card.className = `mode-card ${mode.key === result.best.tax.key ? 'best-tax' : ''} ${mode.key === result.best.profit.key ? 'best-profit' : ''}`;
+    const chips = [
+      mode.key === result.best.tax.key ? '<span class="mode-chip">扣税最低</span>' : '',
+      mode.key === result.best.profit.key ? '<span class="mode-chip">利润最高</span>' : ''
+    ].join('');
+    card.innerHTML = `
+      <div class="mode-card-title"><span>${mode.label}</span><span>${chips}</span></div>
+      <div class="mode-metrics">
+        <div><div class="metric-label">扣税</div><div class="metric-value">${money(mode.tax)}</div></div>
+        <div><div class="metric-label">利润</div><div class="metric-value ${mode.profit < 0 ? 'loss' : 'profit'}">${money(mode.profit)}</div></div>
+        <div><div class="metric-label">系统/核算成本</div><div class="metric-value">${money(mode.cost)}</div></div>
+        <div><div class="metric-label">标价合计</div><div class="metric-value">${money(mode.revenue)}</div></div>
+      </div>
+    `;
+    modeGrid.appendChild(card);
+  });
+
+  renderFocusPanel(result.focus);
+  document.getElementById('copySummary').value = buildSummary(result);
+}
+
+function renderFocusPanel(focus) {
+  const panel = document.getElementById('focusPanel');
+  const grid = document.getElementById('focusGrid');
+  panel.style.display = 'flex';
+  grid.innerHTML = '';
+  ['hotel', 'transport', 'flight'].forEach(key => {
+    const group = focus[key];
+    const card = document.createElement('div');
+    card.className = `focus-card ${group.marked ? '' : 'empty'}`;
+    const rows = ['retailZicai', 'agentSystem', 'agentZicai'].map(modeKey => {
+      const mode = group.modes[modeKey];
+      return `<div class="focus-mode-row"><span>${mode.label}</span><span>扣税 <strong>${money(mode.tax)}</strong></span><span>利润 <strong>${money(mode.profit)}</strong></span></div>`;
+    }).join('');
+    card.innerHTML = `
+      <div class="focus-card-head">
+        <span>${group.label}</span>
+        <span class="focus-spread">${group.marked ? '差额 ' + money(group.spread) : '本单无'}</span>
+      </div>
+      <div class="focus-basics">
+        <div>标价<strong>${money(group.marked)}</strong></div>
+        <div>成本<strong>${money(group.cost)}</strong></div>
+        <div>空间<strong>${money(group.spread)}</strong></div>
+      </div>
+      ${rows}
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function buildDecisionNote(result) {
+  const retail = result.modes.retailZicai;
+  const agentZicai = result.modes.agentZicai;
+  const zicaiWinner = retail.profit >= agentZicai.profit ? retail : agentZicai;
+  const zicaiLoser = retail.profit >= agentZicai.profit ? agentZicai : retail;
+  const profitDiff = Math.abs(retail.profit - agentZicai.profit);
+  const taxDiff = Math.abs(result.modes.retailZicai.tax - result.modes.agentSystem.tax);
+  return `自采利润对比：<strong>${zicaiWinner.label}</strong> 比 ${zicaiLoser.label} 高 <strong>${money(profitDiff)}</strong><br>扣税最低：<strong>${result.best.tax.label}</strong>，与零售自采相差约 <strong>${money(taxDiff)}</strong><br><span style="color:#667085">系统/核算成本 = 标价合计 - 服务费；保险保留为成本；填写自采成本后替换对应项目的系统标价成本。门票成本可用于讲解/导游服务按门票项核算。</span>`;
+}
+
+function renderDetail(result) {
   const drawerBody = document.getElementById('detailDrawerBody');
+  const modeOrder = ['retailZicai', 'agentSystem', 'agentZicai'];
   let detailHtml = '';
   items.forEach((item, idx) => {
-    const a = agentDetail[idx], r = retailDetail[idx];
-    const diff = Math.abs(a.tax - r.tax);
-    const better = a.tax < r.tax ? '代理' : a.tax > r.tax ? '零售' : '相同';
-    detailHtml += `<div class="detail-row"><span>${item.name}</span><span style="color:#999">代理 ${a.rateText} = ¥${Math.round(a.tax).toLocaleString()} vs 零售 ${r.rateText} = ¥${Math.round(r.tax).toLocaleString()} → ${better}${diff > 0 ? ' 省¥' + Math.round(diff).toLocaleString() : ''}</span></div>`;
+    const rows = modeOrder.map(key => {
+      const line = result.modes[key].lines[idx];
+      return `${result.modes[key].label}：扣${percent(line.rate)}=${money(line.tax)}，核算成本${money(line.cost)}，利润${money(line.profit)}`;
+    }).join('<br>');
+    detailHtml += `<div class="detail-row"><span>${item.name}</span><span style="color:#999">${rows}</span></div>`;
   });
-  detailHtml += `<div class="detail-row detail-row-total"><span>合计</span><span style="color:#999">代理 ¥${Math.round(agentTotalTax).toLocaleString()} vs 零售 ¥${Math.round(retailTotalTax).toLocaleString()}</span></div>`;
+  detailHtml += `<div class="detail-row detail-row-total"><span>合计</span><span style="color:#999">扣税最低：${result.best.tax.label} ${money(result.best.tax.value)}<br>利润最高：${result.best.profit.label} ${money(result.best.profit.value)}</span></div>`;
   drawerBody.innerHTML = detailHtml;
+}
+
+function updateRowHints(result) {
+  items.forEach((item, idx) => {
+    const retail = result.modes.retailZicai.lines[idx];
+    const agentSystem = result.modes.agentSystem.lines[idx];
+    const agentZicai = result.modes.agentZicai.lines[idx];
+    const bestLine = [retail, agentSystem, agentZicai].reduce((best, line, lineIdx) => {
+    const labels = ['零售', '系统', '代理'];
+      if (!best || line.profit > best.profit) return { profit: line.profit, label: labels[lineIdx] };
+      return best;
+    }, null);
+    const choiceCell = document.getElementById(`choice_${idx}`);
+    if (choiceCell) choiceCell.innerHTML = `<span class="choice-tag choice-zicai">${bestLine.label}</span>`;
+    const taxCell = document.getElementById(`tax_${idx}`);
+    if (taxCell) {
+      taxCell.innerHTML = `<span class="retail">零售${percent(retail.rate)}</span><br><span class="agent">代理自采${percent(agentZicai.rate)}</span>`;
+    }
+  });
+}
+
+function buildSummary(result) {
+  const retail = result.modes.retailZicai;
+  const agentSystem = result.modes.agentSystem;
+  const agentZicai = result.modes.agentZicai;
+  const focusLines = ['hotel', 'transport', 'flight'].map(key => {
+    const group = result.focus[key];
+    return `${group.label}：标价 ${money(group.marked)}，成本 ${money(group.cost)}，差额 ${money(group.spread)}，零售利润 ${money(group.modes.retailZicai.profit)}，代理系统利润 ${money(group.modes.agentSystem.profit)}，代理自采利润 ${money(group.modes.agentZicai.profit)}`;
+  });
+  const profitDiff = Math.abs(retail.profit - agentZicai.profit);
+  const zicaiWinner = retail.profit >= agentZicai.profit ? retail : agentZicai;
+  return [
+    '合同模式核算结果：',
+    `扣税最低：${result.best.tax.label}，扣税 ${money(result.best.tax.value)}`,
+    `利润最高：${result.best.profit.label}，利润 ${money(result.best.profit.value)}`,
+    '',
+    `零售自采：扣税 ${money(retail.tax)}，核算成本 ${money(retail.cost)}，利润 ${money(retail.profit)}`,
+    `代理系统：扣税 ${money(agentSystem.tax)}，系统/核算成本 ${money(agentSystem.cost)}，利润 ${money(agentSystem.profit)}`,
+    `代理自采：扣税 ${money(agentZicai.tax)}，核算成本 ${money(agentZicai.cost)}，利润 ${money(agentZicai.profit)}`,
+    '',
+    '重点利润项：',
+    ...focusLines,
+    '',
+    `自采利润对比：${zicaiWinner.label} 更高，高 ${money(profitDiff)}`
+  ].join('\n');
+}
+
+function copySummary() {
+  const summary = document.getElementById('copySummary');
+  summary.select();
+  document.execCommand('copy');
 }
 
 function toggleDetail() {
