@@ -306,6 +306,7 @@
     .type-insurance { background: #f0f0f0; color: #6b7280; }
     .type-flight { background: #e6efff; color: #2563eb; }
     .type-train { background: #e6f9ff; color: #0891b2; }
+    .type-transport { background: #e8f6ff; color: #0476a8; }
     
     .name-cell {
       font-size: 13px;
@@ -341,6 +342,12 @@
     }
     .price-system {
       color: var(--text-secondary);
+    }
+
+    .system-price-input {
+      width: 68px !important;
+      color: var(--text-primary);
+      font-weight: 600;
     }
     
     input[type="number"] {
@@ -426,6 +433,32 @@
       font-size: 12px;
       background: white;
       cursor: pointer;
+    }
+
+    .batch-source-tools {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    .batch-source-tools .batch-label {
+      color: var(--text-tertiary);
+    }
+    .batch-source-tools button {
+      border: 1px solid #cbd8ea;
+      background: #fff;
+      color: #31527c;
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .batch-source-tools button:hover {
+      border-color: var(--ctrip-blue);
+      color: var(--ctrip-blue);
+      background: #f3f8ff;
     }
 
     /* Result Bar - Decision panel */
@@ -1226,7 +1259,13 @@
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
           资源明细
         </h3>
-        <span style="font-size:11px;color:#999">填自采单价，系统自动计算总价</span>
+        <div class="batch-source-tools">
+          <span class="batch-label">批量来源</span>
+          <button type="button" onclick="setSourceForType('hotel','system')">酒店系统</button>
+          <button type="button" onclick="setSourceForType('hotel','zicai')">酒店自采</button>
+          <button type="button" onclick="setSourceForType('ticket','system')">门票系统</button>
+          <button type="button" onclick="setSourceForType('ticket','zicai')">门票自采</button>
+        </div>
       </div>
       <table>
         <thead>
@@ -1372,8 +1411,12 @@ function createFocusGroup(label) {
 function getFocusKey(item) {
   if (item.category === 'hotel') return 'hotel';
   if (item.category === 'flight') return 'flight';
-  if (item.type === 'dijie' && /车|交通|用车|接送/.test(item.name || '')) return 'transport';
+  if (isTransportItem(item)) return 'transport';
   return null;
+}
+
+function isTransportItem(item) {
+  return item.type === 'transport' || (item.category === 'dijie' && /车|交通|用车|接送/.test(item.name || ''));
 }
 
 function addFocusLine(group, item) {
@@ -1436,7 +1479,7 @@ function getAgentSystemRate(item) {
   if (item.category === 'hotel') return item.source === 'zicai' ? TAX_RATES.agent.hotel_zicai : 0;
   if (item.category === 'flight') return item.source === 'zicai' ? TAX_RATES.agent.flight_zicai : 0;
   if (item.category === 'insurance') return 0;
-  if (item.category === 'ticket') return getTicketRate(item, 'agent');
+  if (item.category === 'ticket') return item.source !== 'system' || isGuideInTicket(item) ? getTicketRate(item, 'agent') : 0;
   if (item.category === 'train') return TAX_RATES.agent.train_zicai;
   if (item.category === 'dijie') return TAX_RATES.agent.dijie;
   return 0;
@@ -1462,6 +1505,10 @@ function getTicketRate(item, contract) {
   if (ticketType === 'ticket_emeishan') return TAX_RATES.agent.ticket_emeishan_zicai;
   if (ticketType === 'ticket_panda_dujiangyan_qingcheng') return TAX_RATES.agent.ticket_panda_dujiangyan_qingcheng_zicai;
   return TAX_RATES.agent.ticket_normal_zicai;
+}
+
+function isGuideInTicket(item) {
+  return item.category === 'ticket' && /导游|讲解|人工讲解|讲解服务|导览/.test(item.name || '');
 }
 
 function getCost(item, modeKey) {
@@ -1493,7 +1540,7 @@ let items = [];
 function parseAndFill() {
   const text = document.getElementById('pasteInput').value.trim();
   if (!text) { alert('请先粘贴携程方案内容'); return; }
-  items = parseItinerary(text);
+  items = sortItemsForDisplay(parseItinerary(text));
   renderTable();
   updateSummary();
   document.getElementById('tableCard').style.display = 'block';
@@ -1528,17 +1575,22 @@ function parseQuantity(secLines, totalIdx) {
 
 function parseItinerary(text) {
   const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-  const sectionHeaders = ['机票','火车','酒店','门票','保险','出行工具','服务费','活动','导游'];
+  const sectionHeaders = ['机票','火车','酒店','用车','门票','保险','出行工具','服务费','活动','导游'];
   function isSectionHeader(line) { return sectionHeaders.includes(line); }
+  function isCarSectionName(name) { return name === '用车' || name === '出行工具'; }
+  function extractMoney(line, pick = 'first') {
+    const matches = [...String(line || '').matchAll(/[\u00a5\uffe5](\d+(?:,\d+)*)/g)];
+    if (!matches.length) return null;
+    const match = pick === 'last' ? matches[matches.length - 1] : matches[0];
+    return parseInt(match[1].replace(/,/g, ''), 10);
+  }
+  function isMoneyLine(line) { return extractMoney(line) != null; }
   function findRealSections(lines) {
     const sections = [];
     for (let i = 0; i < lines.length; i++) {
       if (isSectionHeader(lines[i])) {
-        let hasContent = false;
-        for (let j = i+1; j < Math.min(lines.length, i+10); j++) {
-          if (lines[j].match(/¥\d+/) || lines[j] === '总价') { hasContent = true; break; }
-        }
-        if (hasContent) sections.push({ name: lines[i], start: i+1 });
+        const nextLines = lines.slice(i + 1, i + 3);
+        if (nextLines.some(isMoneyLine)) sections.push({ name: lines[i], start: i+1 });
       }
     }
     for (let i = 0; i < sections.length; i++) {
@@ -1617,7 +1669,7 @@ function parseItinerary(text) {
             rooms: 1, nights: 1,
             ticketType: tType,
             category: 'ticket',
-            source: 'zicai'
+            source: 'system'
           });
         }
       }
@@ -1627,20 +1679,22 @@ function parseItinerary(text) {
     
     // === 机票特殊处理：拆分成人票/儿童票/学生票/婴儿票 ===
     if (section.name === '机票') {
-      let currentFlight = '';
+      let flightSegments = [];
       let foundTickets = false;
       
       for (let i = 0; i < secLines.length; i++) {
         const line = secLines[i];
         
-        // 找航班信息行（包含日期和航线）
-        if (/\d{2}月\d{2}日/.test(line) && /[\u4e00-\u9fa5]{2,}/.test(line)) {
-          currentFlight = line;
+        // 找航段信息，往返程会合并显示，避免只保留最后一段
+        if (/\d{2}月\d{2}日/.test(line) && /[\u4e00-\u9fa5]{2,}/.test(line) && !line.includes('¥') && !line.includes('总价')) {
+          if (line.includes('去程') || line.includes('返程') || /[\u4e00-\u9fa5]{2,}[\u4e00-\u9fa5]{2,}/.test(line)) {
+            flightSegments.push(line);
+          }
         }
         
         // 找单价行：¥830 x 6人
-        const priceMatch = line.match(/¥(\d+(?:,\d+)*)\s*x\s*(\d+)\s*(人|份)/);
-        if (priceMatch && currentFlight) {
+        const priceMatch = line.match(/[\u00a5\uffe5](\d+(?:,\d+)*)\s*x\s*(\d+)\s*(人|份)/);
+        if (priceMatch && flightSegments.length) {
           foundTickets = true;
           const unitPrice = parseInt(priceMatch[1].replace(/,/g, ''));
           const qty = parseInt(priceMatch[2]);
@@ -1654,6 +1708,7 @@ function parseItinerary(text) {
             }
           }
           
+          const currentFlight = flightSegments.join(' / ');
           const fullName = ticketCategory ? `[${currentFlight}] ${ticketCategory}` : currentFlight;
           const totalPrice = unitPrice * qty;
           
@@ -1666,7 +1721,7 @@ function parseItinerary(text) {
             rooms: 1, nights: 1,
             ticketType: 'ticket_normal',
             category: 'flight',
-            source: 'zicai'
+            source: 'system'
           });
         }
       }
@@ -1721,20 +1776,65 @@ function parseItinerary(text) {
             rooms: 1, nights: 1,
             ticketType: 'ticket_normal',
             category: 'train',
-            source: 'zicai'
+            source: 'system'
           });
         }
       }
       
       if (foundTickets) return; // 火车已拆分，跳过通用逻辑
     }
+
+    // === 用车/出行工具：按每个总价拆分，并归入车费 ===
+    if (isCarSectionName(section.name)) {
+      let foundCars = false;
+      for (let i = 0; i < secLines.length; i++) {
+        if (secLines[i] !== '总价' || i + 1 >= secLines.length) continue;
+        const price = extractMoney(secLines[i + 1]);
+        if (price == null) continue;
+        let name = '';
+        let dateStr = '';
+        for (let j = Math.max(0, i - 24); j < i; j++) {
+          const line = secLines[j];
+          if (!dateStr && /\d{2}月\d{2}日/.test(line)) dateStr = line;
+          if (/¥|总价|价格|明细|费用|说明|比价|取消|起点|终点|出发时间|每日|小时|公里/.test(line)) continue;
+          if (line.length < 2 || line.length > 36) continue;
+          if (line.includes('当地交通') || line.includes('包车') || line.includes('用车') || line.includes('接送') || line.includes('交通') || line.includes('车型') || line.includes('商务')) {
+            name = line;
+            break;
+          }
+        }
+        if (!name) name = section.name === '用车' ? '用车' : '用车（全程）';
+        const fullName = dateStr ? `[${dateStr}] ${name}` : name;
+        allItems.push({
+          type: 'transport',
+          name: fullName,
+          systemPrice: price,
+          zicaiUnitPrice: '',
+          quantity: 1,
+          rooms: 1, nights: 1,
+          ticketType: 'ticket_normal',
+          category: 'dijie',
+          source: 'system'
+        });
+        foundCars = true;
+      }
+      if (foundCars) return;
+    }
     
     // === 其他section保持原逻辑 ===
     for (let i = 0; i < secLines.length; i++) {
       if (secLines[i] === '总价' && i+1 < secLines.length) {
-        const match = secLines[i+1].match(/¥(\d+(?:,\d+)*)/);
-        if (match) {
-          const price = parseInt(match[1].replace(/,/g,''));
+        const nextLine = secLines[i + 1] || '';
+        const explicitTotal = nextLine.includes('价格优势') ? null : extractMoney(nextLine, 'last');
+        const price = explicitTotal != null ? explicitTotal : (() => {
+          const qtyInfo = parseQuantity(secLines, i);
+          for (let j = i - 1; j >= Math.max(0, i - 12); j--) {
+            const unit = extractMoney(secLines[j]);
+            if (unit != null && /x/.test(secLines[j])) return unit * qtyInfo.qty;
+          }
+          return null;
+        })();
+        if (price != null) {
           let name = '', ticketType = 'ticket_normal', dateStr = '';
           let qtyInfo = parseQuantity(secLines, i);
           let qty = qtyInfo.qty, rooms = qtyInfo.rooms, nights = qtyInfo.nights;
@@ -1806,9 +1906,12 @@ function parseItinerary(text) {
                 name = line; break;
               }
             }
-            else if (section.name === '出行工具') {
+            else if (isCarSectionName(section.name)) {
               if (line.includes('当地交通') || line.includes('用车') || line.includes('接送')) {
                 name = '用车（全程）'; break;
+              }
+              if (section.name === '用车' && (line.includes('包车') || line.includes('商务') || line.includes('车型'))) {
+                name = line; break;
               }
             }
             else if (section.name === '服务费') {
@@ -1827,19 +1930,20 @@ function parseItinerary(text) {
           }
           if (name) {
             const fullName = dateStr ? `[${dateStr}] ${name}` : name;
+            const isCarSection = isCarSectionName(section.name);
             allItems.push({
-              type: section.name === '出行工具' ? 'dijie' : section.name === '服务费' ? 'service' :
+              type: isCarSection ? 'transport' : section.name === '服务费' ? 'service' :
                     section.name === '活动' ? 'activity' : section.name === '保险' ? 'insurance' :
                     section.name === '火车' ? 'train' : section.name === '机票' ? 'flight' :
                     section.name === '门票' ? 'ticket' : section.name === '酒店' ? 'hotel' :
                     section.name === '导游' ? 'dijie' : 'other',
               name: fullName, systemPrice: price, zicaiUnitPrice: '', quantity: qty, rooms, nights,
               ticketType,
-              category: section.name === '出行工具' || section.name === '服务费' || section.name === '活动' || section.name === '导游' ? 'dijie' :
+              category: isCarSection || section.name === '服务费' || section.name === '活动' || section.name === '导游' ? 'dijie' :
                         section.name === '保险' ? 'insurance' : section.name === '火车' ? 'train' :
                         section.name === '机票' ? 'flight' : section.name === '门票' ? 'ticket' :
                         section.name === '酒店' ? 'hotel' : 'other',
-              source: section.name === '酒店' ? 'system' : 'zicai'
+              source: 'system'
             });
           }
         }
@@ -1849,13 +1953,20 @@ function parseItinerary(text) {
   return allItems;
 }
 
+function sortItemsForDisplay(list) {
+  const order = { flight: 10, train: 20, hotel: 30, ticket: 40, insurance: 50, service: 80, dijie: 90, transport: 95, activity: 96, other: 99 };
+  return list.map((item, index) => ({ item, index }))
+    .sort((a, b) => (order[a.item.type] ?? 99) - (order[b.item.type] ?? 99) || a.index - b.index)
+    .map(entry => entry.item);
+}
+
 function renderTable() {
   const tbody = document.getElementById('itemsBody');
   tbody.innerHTML = '';
   items.forEach((item, idx) => {
     const tr = document.createElement('tr');
     tr.dataset.index = idx;
-    const typeName = { hotel:'酒店', ticket:'门票', dijie:'地接', service:'服务', activity:'活动', insurance:'保险', flight:'机票', train:'火车' }[item.type] || item.type;
+    const typeName = { hotel:'酒店', ticket:'门票', dijie:'地接', transport:'用车', service:'服务', activity:'活动', insurance:'保险', flight:'机票', train:'火车' }[item.type] || item.type;
     const tagClass = item.category === 'dijie' ? 'choice-must' : (item.category === 'insurance') ? 'choice-system' : 'choice-zicai';
     const tagText = item.category === 'dijie' ? '必自采' : (item.category === 'insurance') ? '系统' : '可选';
     const qtyDisplay = item.type === 'hotel' ? `${item.rooms}间×${item.nights}晚` : item.quantity;
@@ -1869,10 +1980,13 @@ function renderTable() {
     const showZicaiInput = ['flight','hotel','ticket'].includes(item.type) || (item.category === 'dijie' && item.type !== 'service' && item.type !== 'activity');
     const zicaiInput = showZicaiInput ? `<span class="cost-control"><input type="number" id="zicai_${idx}" value="${item.zicaiUnitPrice}" placeholder="成本" onchange="updateZicai(${idx}, this.value)" oninput="this.classList.toggle('has-value', this.value !== '' && Number(this.value) > 0)"></span>` : `<span style="color:#bbb;font-size:12px">${item.type === 'service' ? '无成本' : '-'}</span>`;
     const zicaiTotal = showZicaiInput ? `<span class="cost-total-wrap"><span id="zicaiTotal_${idx}">-</span><button class="cost-clear" type="button" title="清空成本，按系统标价核算" onclick="clearZicai(${idx})">清</button></span>` : '<span style="color:#bbb">-</span>';
+    const systemPriceCell = isTransportItem(item)
+      ? `<input type="number" class="system-price-input" id="system_${idx}" value="${item.systemPrice}" min="0" onchange="updateSystemPrice(${idx}, this.value)">`
+      : `¥${item.systemPrice.toLocaleString()}`;
     tr.innerHTML = `
       <td><span class="type-tag type-${item.type}">${typeName}</span></td>
       <td><div class="name-cell" title="${item.name}">${item.name}</div></td>
-      <td class="price-cell price-system">¥${item.systemPrice.toLocaleString()}</td>
+      <td class="price-cell price-system">${systemPriceCell}</td>
       <td>
         ${showZicaiInput || showSource ? `
         <input type="number" class="qty-input" id="qty_${idx}" value="${item.quantity}" min="1" onchange="updateQuantity(${idx}, this.value)">
@@ -1894,6 +2008,15 @@ function updateQuantity(idx, value) {
     const totalCell = document.getElementById(`zicaiTotal_${idx}`);
     totalCell.textContent = '¥' + (items[idx].zicaiUnitPrice * items[idx].quantity).toLocaleString();
   }
+  updateSummary();
+  if (document.getElementById('resultBar').classList.contains('show')) calculate();
+}
+
+function updateSystemPrice(idx, value) {
+  const parsed = parseFloat(value);
+  items[idx].systemPrice = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+  const input = document.getElementById(`system_${idx}`);
+  if (input) input.value = items[idx].systemPrice;
   updateSummary();
   if (document.getElementById('resultBar').classList.contains('show')) calculate();
 }
@@ -1929,6 +2052,15 @@ function clearZicai(idx) {
 
 function updateSource(idx, value) {
   items[idx].source = value;
+  if (document.getElementById('resultBar').classList.contains('show')) calculate();
+}
+
+function setSourceForType(type, source) {
+  items.forEach(item => {
+    if (item.type === type) item.source = source;
+  });
+  renderTable();
+  updateSummary();
   if (document.getElementById('resultBar').classList.contains('show')) calculate();
 }
 
