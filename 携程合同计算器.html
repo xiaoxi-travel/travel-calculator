@@ -345,7 +345,7 @@
     }
 
     .system-price-input {
-      width: 68px !important;
+      width: 76px !important;
       color: var(--text-primary);
       font-weight: 600;
     }
@@ -1272,10 +1272,10 @@
           <tr>
             <th style="width:54px">类型</th>
             <th>名称</th>
-            <th style="width:82px">系统价</th>
+            <th style="width:92px">系统价</th>
             <th style="width:68px">数量</th>
             <th style="width:88px">成本</th>
-            <th style="width:112px">成本合计</th>
+            <th style="width:98px">成本合计</th>
             <th style="width:78px">来源</th>
             <th style="width:90px">扣税</th>
             <th style="width:72px">最优</th>
@@ -1302,7 +1302,7 @@
       <div class="result-note" id="resultNote">计算后显示关键差异</div>
       <div class="mode-grid" id="modeGrid"></div>
       <div class="focus-panel" id="focusPanel" style="display:none">
-        <div class="focus-title">重点利润项 <span>酒店 / 车费 / 机票</span></div>
+        <div class="focus-title">重点利润项 <span>酒店 / 车费 / 机票 / 门票</span></div>
         <div class="focus-grid" id="focusGrid"></div>
       </div>
       <textarea class="copy-summary" id="copySummary" readonly placeholder="计算后生成可复制结果"></textarea>
@@ -1384,7 +1384,8 @@ function calculateFocus(items) {
   const groups = {
     hotel: createFocusGroup('酒店'),
     transport: createFocusGroup('车费'),
-    flight: createFocusGroup('机票')
+    flight: createFocusGroup('机票'),
+    ticket: createFocusGroup('门票')
   };
   items.forEach(item => {
     const key = getFocusKey(item);
@@ -1411,6 +1412,7 @@ function createFocusGroup(label) {
 function getFocusKey(item) {
   if (item.category === 'hotel') return 'hotel';
   if (item.category === 'flight') return 'flight';
+  if (item.category === 'ticket') return 'ticket';
   if (isTransportItem(item)) return 'transport';
   return null;
 }
@@ -1479,7 +1481,7 @@ function getAgentSystemRate(item) {
   if (item.category === 'hotel') return item.source === 'zicai' ? TAX_RATES.agent.hotel_zicai : 0;
   if (item.category === 'flight') return item.source === 'zicai' ? TAX_RATES.agent.flight_zicai : 0;
   if (item.category === 'insurance') return 0;
-  if (item.category === 'ticket') return item.source !== 'system' || isGuideInTicket(item) ? getTicketRate(item, 'agent') : 0;
+  if (item.category === 'ticket') return item.source === 'zicai' || isGuideInTicket(item) ? getTicketRate(item, 'agent') : 0;
   if (item.category === 'train') return TAX_RATES.agent.train_zicai;
   if (item.category === 'dijie') return TAX_RATES.agent.dijie;
   return 0;
@@ -1680,6 +1682,7 @@ function parseItinerary(text) {
     // === 机票特殊处理：拆分成人票/儿童票/学生票/婴儿票 ===
     if (section.name === '机票') {
       let flightSegments = [];
+      let flightGroupHasTickets = false;
       let foundTickets = false;
       
       for (let i = 0; i < secLines.length; i++) {
@@ -1688,7 +1691,12 @@ function parseItinerary(text) {
         // 找航段信息，往返程会合并显示，避免只保留最后一段
         if (/\d{2}月\d{2}日/.test(line) && /[\u4e00-\u9fa5]{2,}/.test(line) && !line.includes('¥') && !line.includes('总价')) {
           if (line.includes('去程') || line.includes('返程') || /[\u4e00-\u9fa5]{2,}[\u4e00-\u9fa5]{2,}/.test(line)) {
-            flightSegments.push(line);
+            if (flightGroupHasTickets) {
+              flightSegments = [line];
+              flightGroupHasTickets = false;
+            } else {
+              flightSegments.push(line);
+            }
           }
         }
         
@@ -1696,6 +1704,7 @@ function parseItinerary(text) {
         const priceMatch = line.match(/[\u00a5\uffe5](\d+(?:,\d+)*)\s*x\s*(\d+)\s*(人|份)/);
         if (priceMatch && flightSegments.length) {
           foundTickets = true;
+          flightGroupHasTickets = true;
           const unitPrice = parseInt(priceMatch[1].replace(/,/g, ''));
           const qty = parseInt(priceMatch[2]);
           
@@ -1980,17 +1989,14 @@ function renderTable() {
     const showZicaiInput = ['flight','hotel','ticket'].includes(item.type) || (item.category === 'dijie' && item.type !== 'service' && item.type !== 'activity');
     const zicaiInput = showZicaiInput ? `<span class="cost-control"><input type="number" id="zicai_${idx}" value="${item.zicaiUnitPrice}" placeholder="成本" onchange="updateZicai(${idx}, this.value)" oninput="this.classList.toggle('has-value', this.value !== '' && Number(this.value) > 0)"></span>` : `<span style="color:#bbb;font-size:12px">${item.type === 'service' ? '无成本' : '-'}</span>`;
     const zicaiTotal = showZicaiInput ? `<span class="cost-total-wrap"><span id="zicaiTotal_${idx}">-</span><button class="cost-clear" type="button" title="清空成本，按系统标价核算" onclick="clearZicai(${idx})">清</button></span>` : '<span style="color:#bbb">-</span>';
-    const systemPriceCell = isTransportItem(item)
-      ? `<input type="number" class="system-price-input" id="system_${idx}" value="${item.systemPrice}" min="0" onchange="updateSystemPrice(${idx}, this.value)">`
-      : `¥${item.systemPrice.toLocaleString()}`;
+    const systemPriceCell = `<input type="number" class="system-price-input" id="system_${idx}" value="${item.systemPrice}" min="0" onchange="updateSystemPrice(${idx}, this.value)">`;
     tr.innerHTML = `
       <td><span class="type-tag type-${item.type}">${typeName}</span></td>
       <td><div class="name-cell" title="${item.name}">${item.name}</div></td>
       <td class="price-cell price-system">${systemPriceCell}</td>
       <td>
-        ${showZicaiInput || showSource ? `
         <input type="number" class="qty-input" id="qty_${idx}" value="${item.quantity}" min="1" onchange="updateQuantity(${idx}, this.value)">
-        <div class="qty-detail">${qtyDisplay}</div>` : `<div class="qty-detail" style="padding:7px 0">${qtyDisplay}</div>`}
+        <div class="qty-detail">${qtyDisplay}</div>
       </td>
       <td>${zicaiInput}</td>
       <td class="price-cell">${zicaiTotal}</td>
@@ -2003,7 +2009,14 @@ function renderTable() {
 }
 
 function updateQuantity(idx, value) {
-  items[idx].quantity = parseInt(value) || 1;
+  const item = items[idx];
+  const nextQty = Math.max(1, parseFloat(value) || 1);
+  const unitPrice = getSystemUnitPrice(item);
+  item.quantity = nextQty;
+  item.systemPrice = roundMoney(unitPrice * nextQty);
+  item.systemUnitPrice = unitPrice;
+  const systemInput = document.getElementById(`system_${idx}`);
+  if (systemInput) systemInput.value = item.systemPrice;
   if (hasEnteredCost(items[idx])) {
     const totalCell = document.getElementById(`zicaiTotal_${idx}`);
     totalCell.textContent = '¥' + (items[idx].zicaiUnitPrice * items[idx].quantity).toLocaleString();
@@ -2015,10 +2028,21 @@ function updateQuantity(idx, value) {
 function updateSystemPrice(idx, value) {
   const parsed = parseFloat(value);
   items[idx].systemPrice = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+  items[idx].systemUnitPrice = roundMoney(items[idx].systemPrice / (Number(items[idx].quantity) || 1));
   const input = document.getElementById(`system_${idx}`);
   if (input) input.value = items[idx].systemPrice;
   updateSummary();
   if (document.getElementById('resultBar').classList.contains('show')) calculate();
+}
+
+function getSystemUnitPrice(item) {
+  const saved = Number(item.systemUnitPrice);
+  if (Number.isFinite(saved) && saved >= 0) return saved;
+  return (Number(item.systemPrice) || 0) / (Number(item.quantity) || 1);
+}
+
+function roundMoney(value) {
+  return Math.round((Number(value) || 0) * 100) / 100;
 }
 
 function updateZicai(idx, value) {
@@ -2125,7 +2149,7 @@ function renderFocusPanel(focus) {
   const grid = document.getElementById('focusGrid');
   panel.style.display = 'flex';
   grid.innerHTML = '';
-  ['hotel', 'transport', 'flight'].forEach(key => {
+  ['hotel', 'transport', 'flight', 'ticket'].forEach(key => {
     const group = focus[key];
     const card = document.createElement('div');
     card.className = `focus-card ${group.marked ? '' : 'empty'}`;
@@ -2197,7 +2221,7 @@ function buildSummary(result) {
   const retail = result.modes.retailZicai;
   const agentSystem = result.modes.agentSystem;
   const agentZicai = result.modes.agentZicai;
-  const focusLines = ['hotel', 'transport', 'flight'].map(key => {
+  const focusLines = ['hotel', 'transport', 'flight', 'ticket'].map(key => {
     const group = result.focus[key];
     return `${group.label}：标价 ${money(group.marked)}，成本 ${money(group.cost)}，差额 ${money(group.spread)}，零售利润 ${money(group.modes.retailZicai.profit)}，代理系统利润 ${money(group.modes.agentSystem.profit)}，代理自采利润 ${money(group.modes.agentZicai.profit)}`;
   });
