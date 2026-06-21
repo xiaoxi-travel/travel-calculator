@@ -1514,11 +1514,11 @@ function isGuideInTicket(item) {
 }
 
 function getCost(item, modeKey) {
-  if (item.type === 'service') return 0;
   if (modeKey === 'agentSystem' && ['hotel', 'flight'].includes(item.category) && item.source !== 'zicai') return Number(item.systemPrice) || 0;
-  const unit = hasEnteredCost(item) ? Number(item.zicaiUnitPrice) || 0 : Number(item.systemPrice) || 0;
-  const quantity = hasEnteredCost(item) ? Number(item.quantity) || 1 : 1;
-  return unit * quantity;
+  if (modeKey === 'agentSystem' && item.category === 'ticket' && item.source !== 'zicai' && !isGuideInTicket(item)) return Number(item.systemPrice) || 0;
+  if (hasEnteredCost(item)) return (Number(item.zicaiUnitPrice) || 0) * (Number(item.quantity) || 1);
+  if (item.type === 'service') return 0;
+  return Number(item.systemPrice) || 0;
 }
 
 function pickBest(modes, field, direction) {
@@ -1585,6 +1585,34 @@ function parseItinerary(text) {
     if (!matches.length) return null;
     const match = pick === 'last' ? matches[matches.length - 1] : matches[0];
     return parseInt(match[1].replace(/,/g, ''), 10);
+  }
+  function countMoney(line) {
+    return [...String(line || '').matchAll(/[\u00a5\uffe5](\d+(?:,\d+)*)/g)].length;
+  }
+  function extractDiscount(line) {
+    const match = String(line || '').match(/-\s*[\u00a5\uffe5](\d+(?:,\d+)*)/);
+    return match ? parseInt(match[1].replace(/,/g, ''), 10) : 0;
+  }
+  function netPriceFromTotalLine(secLines, priceIdx, grossPrice) {
+    const priceLine = secLines[priceIdx] || '';
+    if (countMoney(priceLine) > 1) return extractMoney(priceLine, 'last');
+    let discount = 0;
+    for (let k = priceIdx + 1; k < Math.min(secLines.length, priceIdx + 6); k++) {
+      const line = secLines[k] || '';
+      if (line === '总价') break;
+      if (isSectionHeader(line)) break;
+      if (line.includes('价格优势')) continue;
+      if (line.includes('优惠')) {
+        discount += extractDiscount(line);
+        for (let m = k + 1; m < Math.min(secLines.length, k + 3); m++) {
+          const discountLine = secLines[m] || '';
+          if (discountLine === '总价' || isSectionHeader(discountLine)) break;
+          discount += extractDiscount(discountLine);
+        }
+        break;
+      }
+    }
+    return Math.max(0, grossPrice - discount);
   }
   function isMoneyLine(line) { return extractMoney(line) != null; }
   function findRealSections(lines) {
@@ -1684,6 +1712,7 @@ function parseItinerary(text) {
       let flightSegments = [];
       let flightGroupHasTickets = false;
       let foundTickets = false;
+      const claimedTotalIndexes = new Set();
       
       for (let i = 0; i < secLines.length; i++) {
         const line = secLines[i];
@@ -1732,6 +1761,43 @@ function parseItinerary(text) {
             category: 'flight',
             source: 'system'
           });
+          for (let k = i; k < Math.min(secLines.length, i + 6); k++) {
+            if (secLines[k] === '总价') {
+              claimedTotalIndexes.add(k);
+              break;
+            }
+          }
+        }
+
+        if (line === '总价' && i + 1 < secLines.length && flightSegments.length && !claimedTotalIndexes.has(i)) {
+          const grossPrice = extractMoney(secLines[i + 1], 'last');
+          if (grossPrice != null) {
+            foundTickets = true;
+            flightGroupHasTickets = true;
+            const totalPrice = netPriceFromTotalLine(secLines, i + 1, grossPrice);
+            const qtyInfo = parseQuantity(secLines, i);
+            let ticketCategory = '';
+            for (let k = i - 1; k >= Math.max(0, i - 6); k--) {
+              const candidate = secLines[k];
+              if (candidate.includes('票') || candidate.includes('成人') || candidate.includes('儿童') || candidate.includes('学生') || candidate.includes('婴儿')) {
+                ticketCategory = candidate.trim();
+                break;
+              }
+            }
+            const currentFlight = flightSegments.join(' / ');
+            const fullName = ticketCategory ? `[${currentFlight}] ${ticketCategory}` : currentFlight;
+            allItems.push({
+              type: 'flight',
+              name: fullName,
+              systemPrice: totalPrice,
+              zicaiUnitPrice: '',
+              quantity: qtyInfo.qty,
+              rooms: 1, nights: 1,
+              ticketType: 'ticket_normal',
+              category: 'flight',
+              source: 'system'
+            });
+          }
         }
       }
       
@@ -1798,8 +1864,9 @@ function parseItinerary(text) {
       let foundCars = false;
       for (let i = 0; i < secLines.length; i++) {
         if (secLines[i] !== '总价' || i + 1 >= secLines.length) continue;
-        const price = extractMoney(secLines[i + 1]);
-        if (price == null) continue;
+        const grossPrice = extractMoney(secLines[i + 1]);
+        if (grossPrice == null) continue;
+        const price = netPriceFromTotalLine(secLines, i + 1, grossPrice);
         let name = '';
         let dateStr = '';
         for (let j = Math.max(0, i - 24); j < i; j++) {
@@ -1835,7 +1902,8 @@ function parseItinerary(text) {
       if (secLines[i] === '总价' && i+1 < secLines.length) {
         const nextLine = secLines[i + 1] || '';
         const explicitTotal = nextLine.includes('价格优势') ? null : extractMoney(nextLine, 'last');
-        const price = explicitTotal != null ? explicitTotal : (() => {
+        const netExplicitTotal = explicitTotal != null ? netPriceFromTotalLine(secLines, i + 1, explicitTotal) : null;
+        const price = netExplicitTotal != null ? netExplicitTotal : (() => {
           const qtyInfo = parseQuantity(secLines, i);
           for (let j = i - 1; j >= Math.max(0, i - 12); j--) {
             const unit = extractMoney(secLines[j]);
@@ -1986,9 +2054,10 @@ function renderTable() {
         <option value="zicai" ${item.source==='zicai'?'selected':''}>自采</option>
         <option value="system" ${item.source==='system'?'selected':''}>系统</option>
       </select>` : '-';
-    const showZicaiInput = ['flight','hotel','ticket'].includes(item.type) || (item.category === 'dijie' && item.type !== 'service' && item.type !== 'activity');
-    const zicaiInput = showZicaiInput ? `<span class="cost-control"><input type="number" id="zicai_${idx}" value="${item.zicaiUnitPrice}" placeholder="成本" onchange="updateZicai(${idx}, this.value)" oninput="this.classList.toggle('has-value', this.value !== '' && Number(this.value) > 0)"></span>` : `<span style="color:#bbb;font-size:12px">${item.type === 'service' ? '无成本' : '-'}</span>`;
-    const zicaiTotal = showZicaiInput ? `<span class="cost-total-wrap"><span id="zicaiTotal_${idx}">-</span><button class="cost-clear" type="button" title="清空成本，按系统标价核算" onclick="clearZicai(${idx})">清</button></span>` : '<span style="color:#bbb">-</span>';
+    const showZicaiInput = true;
+    const zicaiInput = `<span class="cost-control"><input type="number" id="zicai_${idx}" value="${item.zicaiUnitPrice}" placeholder="成本" onchange="updateZicai(${idx}, this.value)" oninput="this.classList.toggle('has-value', this.value !== '' && Number(this.value) > 0)"></span>`;
+    const zicaiTotalText = hasEnteredCost(item) ? '¥' + (item.zicaiUnitPrice * item.quantity).toLocaleString() : '-';
+    const zicaiTotal = showZicaiInput ? `<span class="cost-total-wrap"><span id="zicaiTotal_${idx}">${zicaiTotalText}</span><button class="cost-clear" type="button" title="清空成本，按系统标价核算" onclick="clearZicai(${idx})">清</button></span>` : '<span style="color:#bbb">-</span>';
     const systemPriceCell = `<input type="number" class="system-price-input" id="system_${idx}" value="${item.systemPrice}" min="0" onchange="updateSystemPrice(${idx}, this.value)">`;
     tr.innerHTML = `
       <td><span class="type-tag type-${item.type}">${typeName}</span></td>
@@ -2101,7 +2170,7 @@ function updateSummary() {
 }
 
 function isFillableCostItem(item) {
-  return ['flight', 'hotel', 'ticket'].includes(item.type) || (item.category === 'dijie' && item.type !== 'service' && item.type !== 'activity');
+  return true;
 }
 
 function calculate() {
