@@ -224,6 +224,13 @@
       line-height: 1.35;
       word-break: keep-all;
     }
+    .stat-card .stat-extra {
+      font-size: 10px;
+      color: var(--success);
+      margin-top: 3px;
+      line-height: 1.35;
+      word-break: keep-all;
+    }
     
     /* Right Panel */
     .right-panel {
@@ -349,6 +356,18 @@
       color: var(--text-primary);
       font-weight: 600;
     }
+
+    .price-breakdown {
+      margin-top: 4px;
+      font-size: 10px;
+      line-height: 1.45;
+      color: var(--text-tertiary);
+      white-space: normal;
+    }
+    .price-breakdown strong {
+      color: var(--success);
+      font-weight: 700;
+    }
     
     input[type="number"] {
       width: 72px;
@@ -424,6 +443,16 @@
     }
     .tax-rate .agent { color: #2563eb; }
     .tax-rate .retail { color: #dc2626; }
+    .tax-rate .settlement-tax-flag {
+      display: inline-block;
+      margin-left: 3px;
+      padding: 0 3px;
+      border-radius: 3px;
+      background: #e8f1ff;
+      color: #1d4ed8;
+      font-size: 10px;
+      line-height: 1.35;
+    }
     
     .source-select {
       width: 60px;
@@ -516,6 +545,16 @@
     .metric-value { font-family: 'SF Mono', monospace; font-weight: 800; font-size: 19px; margin-top: 2px; }
     .metric-value.profit { color: var(--success); }
     .metric-value.loss { color: var(--danger); }
+    .metric-note {
+      margin-top: 5px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+    }
+    .metric-note .formula {
+      display: block;
+      color: var(--text-tertiary);
+    }
     .focus-panel {
       border: 1px solid #d9eadf;
       background: #fbfffc;
@@ -1223,6 +1262,7 @@
         <div class="stat-card">
           <div class="stat-value" id="systemTotal">¥0</div>
           <div class="stat-label">系统总价</div>
+          <div class="stat-extra" id="discountTotal" style="display:none">已优惠 ¥0</div>
         </div>
         <div class="stat-card">
           <div class="stat-value" id="pendingZicai">0</div>
@@ -1333,27 +1373,25 @@ const TAX_RATES = {
     dijie: 0.14, insurance: 0, service: 0.14, activity: 0.14
   },
   agent: {
-    hotel_system: 0, hotel_zicai: 0.16, ticket_system: 0,
-    ticket_normal_zicai: 0.09, ticket_emeishan_zicai: 0.055,
-    ticket_panda_dujiangyan_qingcheng_zicai: 0.04,
-    train_system: 0, train_zicai: 0.03, flight_system: 0, flight_zicai: 0.04,
-    dijie: 0.16, insurance: 0, service: 0.16, activity: 0.16
+    hotel_system: 0, hotel_zicai: 0.14, ticket_system: 0,
+    ticket_normal_zicai: 0.07, ticket_emeishan_zicai: 0.035,
+    ticket_panda_dujiangyan_qingcheng_zicai: 0.02,
+    train_system: 0, train_zicai: 0.01, flight_system: 0, flight_zicai: 0.02,
+    dijie: 0.14, insurance: 0, service: 0.14, activity: 0.14
   }
 };
 
+const AGENT_SETTLEMENT_TAX_RATE = 0.02;
+
 function getTaxRateText(item) {
-  let agentRate = '', retailRate = '';
-  if (item.category === 'dijie') { agentRate = '16%'; retailRate = '14%'; }
-  else if (item.category === 'insurance') { agentRate = '0%'; retailRate = '0%'; }
-  else if (item.category === 'flight') { agentRate = '4%'; retailRate = '2%'; }
-  else if (item.category === 'train') { agentRate = '3%'; retailRate = '1%'; }
-  else if (item.category === 'hotel') { agentRate = '16%'; retailRate = '14%'; }
-  else if (item.category === 'ticket') {
-    if (item.ticketType === 'ticket_emeishan') { agentRate = '5.5%'; retailRate = '3.5%'; }
-    else if (item.ticketType === 'ticket_panda_dujiangyan_qingcheng') { agentRate = '4%'; retailRate = '2%'; }
-    else { agentRate = '9%'; retailRate = '7%'; }
-  }
-  return `<span class="agent">代理${agentRate}</span><br><span class="retail">零售${retailRate}</span>`;
+  const retailRate = getRetailRate(item);
+  const agentRate = getAgentZicaiRate(item);
+  return buildTaxRateText(retailRate, agentRate, agentRate > 0);
+}
+
+function buildTaxRateText(retailRate, agentRate, participatesSettlementTax) {
+  const settlementFlag = participatesSettlementTax ? '<span class="settlement-tax-flag">计2%</span>' : '';
+  return `<span class="retail">零售${percent(retailRate)}</span><br><span class="agent">代理基础${percent(agentRate)}${settlementFlag}</span>`;
 }
 
 function calculateComparison(items) {
@@ -1367,6 +1405,8 @@ function calculateComparison(items) {
     addLine(modes.agentSystem, item, 'agentSystem');
     addLine(modes.agentZicai, item, 'agentZicai');
   });
+  addAgentSettlementTax(modes.agentSystem);
+  addAgentSettlementTax(modes.agentZicai);
   Object.values(modes).forEach(mode => {
     mode.profit = mode.revenue - mode.tax - mode.cost;
   });
@@ -1446,7 +1486,7 @@ function hasEnteredCost(item) {
 }
 
 function createMode(key, label) {
-  return { key, label, revenue: 0, tax: 0, cost: 0, profit: 0, lines: [] };
+  return { key, label, revenue: 0, tax: 0, baseTax: 0, settlementTax: 0, settlementTaxBase: 0, settlementMarkedBase: 0, cost: 0, profit: 0, lines: [] };
 }
 
 function addLine(mode, item, modeKey) {
@@ -1455,10 +1495,23 @@ function addLine(mode, item, modeKey) {
   const tax = marked * rate;
   const cost = getCost(item, modeKey);
   mode.revenue += marked;
+  mode.baseTax += tax;
   mode.tax += tax;
   mode.cost += cost;
   const profit = marked - tax - cost;
   mode.lines.push({ name: item.name, type: item.type, category: item.category, marked, rate, tax, cost, profit });
+}
+
+function addAgentSettlementTax(mode) {
+  const markedBase = mode.lines.reduce((sum, line) => {
+    if (!line.rate || line.rate <= 0) return sum;
+    return sum + line.marked;
+  }, 0);
+  const taxBase = Math.max(0, markedBase - mode.baseTax);
+  mode.settlementMarkedBase = markedBase;
+  mode.settlementTaxBase = taxBase;
+  mode.settlementTax = taxBase * AGENT_SETTLEMENT_TAX_RATE;
+  mode.tax = mode.baseTax + mode.settlementTax;
 }
 
 function getRate(item, modeKey) {
@@ -1594,8 +1647,14 @@ function parseItinerary(text) {
     return match ? parseInt(match[1].replace(/,/g, ''), 10) : 0;
   }
   function netPriceFromTotalLine(secLines, priceIdx, grossPrice) {
+    return priceBreakdownFromTotalLine(secLines, priceIdx, grossPrice).net;
+  }
+  function priceBreakdownFromTotalLine(secLines, priceIdx, grossPrice) {
     const priceLine = secLines[priceIdx] || '';
-    if (countMoney(priceLine) > 1) return extractMoney(priceLine, 'last');
+    if (countMoney(priceLine) > 1) {
+      const net = extractMoney(priceLine, 'last');
+      return { original: grossPrice, discount: Math.max(0, grossPrice - net), net };
+    }
     let discount = 0;
     for (let k = priceIdx + 1; k < Math.min(secLines.length, priceIdx + 6); k++) {
       const line = secLines[k] || '';
@@ -1612,7 +1671,16 @@ function parseItinerary(text) {
         break;
       }
     }
-    return Math.max(0, grossPrice - discount);
+    return { original: grossPrice, discount, net: Math.max(0, grossPrice - discount) };
+  }
+  function findNetTotalAfter(secLines, startIdx, grossPrice) {
+    for (let k = startIdx + 1; k < Math.min(secLines.length, startIdx + 8); k++) {
+      if (secLines[k] !== '总价' || k + 1 >= secLines.length) continue;
+      const explicitTotal = extractMoney(secLines[k + 1], 'last');
+      if (explicitTotal == null) continue;
+      return priceBreakdownFromTotalLine(secLines, k + 1, grossPrice);
+    }
+    return { original: grossPrice, discount: 0, net: grossPrice };
   }
   function isMoneyLine(line) { return extractMoney(line) != null; }
   function findRealSections(lines) {
@@ -1683,7 +1751,9 @@ function parseItinerary(text) {
           }
           
           const fullName = currentDate ? `[${currentDate}] ${currentAttraction} ${ticketCategory}` : `${currentAttraction} ${ticketCategory}`;
-          const totalPrice = unitPrice * qty;
+          const grossPrice = unitPrice * qty;
+          const priceInfo = findNetTotalAfter(secLines, i, grossPrice);
+          const totalPrice = priceInfo.net;
           
           let tType = 'ticket_normal';
           if (currentAttraction.includes('峨眉')) tType = 'ticket_emeishan';
@@ -1694,6 +1764,8 @@ function parseItinerary(text) {
             type: 'ticket',
             name: fullName,
             systemPrice: totalPrice,
+            originalPrice: priceInfo.original,
+            discountAmount: priceInfo.discount,
             zicaiUnitPrice: '',
             quantity: qty,
             rooms: 1, nights: 1,
@@ -1774,7 +1846,8 @@ function parseItinerary(text) {
           if (grossPrice != null) {
             foundTickets = true;
             flightGroupHasTickets = true;
-            const totalPrice = netPriceFromTotalLine(secLines, i + 1, grossPrice);
+            const priceInfo = priceBreakdownFromTotalLine(secLines, i + 1, grossPrice);
+            const totalPrice = priceInfo.net;
             const qtyInfo = parseQuantity(secLines, i);
             let ticketCategory = '';
             for (let k = i - 1; k >= Math.max(0, i - 6); k--) {
@@ -1790,6 +1863,8 @@ function parseItinerary(text) {
               type: 'flight',
               name: fullName,
               systemPrice: totalPrice,
+              originalPrice: priceInfo.original,
+              discountAmount: priceInfo.discount,
               zicaiUnitPrice: '',
               quantity: qtyInfo.qty,
               rooms: 1, nights: 1,
@@ -1866,7 +1941,8 @@ function parseItinerary(text) {
         if (secLines[i] !== '总价' || i + 1 >= secLines.length) continue;
         const grossPrice = extractMoney(secLines[i + 1]);
         if (grossPrice == null) continue;
-        const price = netPriceFromTotalLine(secLines, i + 1, grossPrice);
+        const priceInfo = priceBreakdownFromTotalLine(secLines, i + 1, grossPrice);
+        const price = priceInfo.net;
         let name = '';
         let dateStr = '';
         for (let j = Math.max(0, i - 24); j < i; j++) {
@@ -1885,6 +1961,8 @@ function parseItinerary(text) {
           type: 'transport',
           name: fullName,
           systemPrice: price,
+          originalPrice: priceInfo.original,
+          discountAmount: priceInfo.discount,
           zicaiUnitPrice: '',
           quantity: 1,
           rooms: 1, nights: 1,
@@ -1902,8 +1980,8 @@ function parseItinerary(text) {
       if (secLines[i] === '总价' && i+1 < secLines.length) {
         const nextLine = secLines[i + 1] || '';
         const explicitTotal = nextLine.includes('价格优势') ? null : extractMoney(nextLine, 'last');
-        const netExplicitTotal = explicitTotal != null ? netPriceFromTotalLine(secLines, i + 1, explicitTotal) : null;
-        const price = netExplicitTotal != null ? netExplicitTotal : (() => {
+        const explicitPriceInfo = explicitTotal != null ? priceBreakdownFromTotalLine(secLines, i + 1, explicitTotal) : null;
+        const price = explicitPriceInfo != null ? explicitPriceInfo.net : (() => {
           const qtyInfo = parseQuantity(secLines, i);
           for (let j = i - 1; j >= Math.max(0, i - 12); j--) {
             const unit = extractMoney(secLines[j]);
@@ -2014,7 +2092,10 @@ function parseItinerary(text) {
                     section.name === '火车' ? 'train' : section.name === '机票' ? 'flight' :
                     section.name === '门票' ? 'ticket' : section.name === '酒店' ? 'hotel' :
                     section.name === '导游' ? 'dijie' : 'other',
-              name: fullName, systemPrice: price, zicaiUnitPrice: '', quantity: qty, rooms, nights,
+              name: fullName, systemPrice: price,
+              originalPrice: explicitPriceInfo ? explicitPriceInfo.original : price,
+              discountAmount: explicitPriceInfo ? explicitPriceInfo.discount : 0,
+              zicaiUnitPrice: '', quantity: qty, rooms, nights,
               ticketType,
               category: isCarSection || section.name === '服务费' || section.name === '活动' || section.name === '导游' ? 'dijie' :
                         section.name === '保险' ? 'insurance' : section.name === '火车' ? 'train' :
@@ -2058,7 +2139,12 @@ function renderTable() {
     const zicaiInput = `<span class="cost-control"><input type="number" id="zicai_${idx}" value="${item.zicaiUnitPrice}" placeholder="成本" onchange="updateZicai(${idx}, this.value)" oninput="this.classList.toggle('has-value', this.value !== '' && Number(this.value) > 0)"></span>`;
     const zicaiTotalText = hasEnteredCost(item) ? '¥' + (item.zicaiUnitPrice * item.quantity).toLocaleString() : '-';
     const zicaiTotal = showZicaiInput ? `<span class="cost-total-wrap"><span id="zicaiTotal_${idx}">${zicaiTotalText}</span><button class="cost-clear" type="button" title="清空成本，按系统标价核算" onclick="clearZicai(${idx})">清</button></span>` : '<span style="color:#bbb">-</span>';
-    const systemPriceCell = `<input type="number" class="system-price-input" id="system_${idx}" value="${item.systemPrice}" min="0" onchange="updateSystemPrice(${idx}, this.value)">`;
+    const originalPrice = Number(item.originalPrice || item.systemPrice);
+    const discountAmount = Number(item.discountAmount) > 0 ? Number(item.discountAmount) : Math.max(0, originalPrice - Number(item.systemPrice || 0));
+    const discountInfo = discountAmount > 0
+      ? `<div class="price-breakdown">原价 ¥${originalPrice.toLocaleString()}<br>优惠 -¥${discountAmount.toLocaleString()}<br><strong>优惠后 ¥${Number(item.systemPrice).toLocaleString()}</strong></div>`
+      : '';
+    const systemPriceCell = `<input type="number" class="system-price-input" id="system_${idx}" value="${item.systemPrice}" min="0" onchange="updateSystemPrice(${idx}, this.value)">${discountInfo}`;
     tr.innerHTML = `
       <td><span class="type-tag type-${item.type}">${typeName}</span></td>
       <td><div class="name-cell" title="${item.name}">${item.name}</div></td>
@@ -2097,6 +2183,8 @@ function updateQuantity(idx, value) {
 function updateSystemPrice(idx, value) {
   const parsed = parseFloat(value);
   items[idx].systemPrice = Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+  items[idx].originalPrice = items[idx].systemPrice;
+  items[idx].discountAmount = 0;
   items[idx].systemUnitPrice = roundMoney(items[idx].systemPrice / (Number(items[idx].quantity) || 1));
   const input = document.getElementById(`system_${idx}`);
   if (input) input.value = items[idx].systemPrice;
@@ -2159,11 +2247,21 @@ function setSourceForType(type, source) {
 
 function updateSummary() {
   const total = items.reduce((s, i) => s + i.systemPrice, 0);
+  const discountTotal = items.reduce((s, i) => {
+    const original = Number(i.originalPrice || i.systemPrice) || 0;
+    const discount = Number(i.discountAmount) > 0 ? Number(i.discountAmount) : Math.max(0, original - (Number(i.systemPrice) || 0));
+    return s + discount;
+  }, 0);
   const fillableCostItems = items.filter(isFillableCostItem);
   const pending = fillableCostItems.filter(i => !hasEnteredCost(i)).length;
   const hotelNights = items.filter(i => i.type === 'hotel').reduce((s, i) => s + i.quantity, 0);
   document.getElementById('itemCount').textContent = items.length;
   document.getElementById('systemTotal').textContent = '¥' + total.toLocaleString();
+  const discountEl = document.getElementById('discountTotal');
+  if (discountEl) {
+    discountEl.textContent = '已优惠 ¥' + discountTotal.toLocaleString();
+    discountEl.style.display = discountTotal > 0 ? 'block' : 'none';
+  }
   document.getElementById('pendingZicai').textContent = pending;
   document.getElementById('pendingZicaiLabel').textContent = `待填成本 · 共${fillableCostItems.length}项`;
   document.getElementById('hotelNights').textContent = hotelNights;
@@ -2197,10 +2295,13 @@ function renderResult(result) {
       mode.key === result.best.tax.key ? '<span class="mode-chip">扣税最低</span>' : '',
       mode.key === result.best.profit.key ? '<span class="mode-chip">利润最高</span>' : ''
     ].join('');
+    const taxBreakdown = mode.settlementTax > 0
+      ? `<div class="metric-note">基础扣点 ${money(mode.baseTax)}<br>代理合同 2% 的税金 ${money(mode.settlementTax)}<span class="formula">税基 = 参与2%项目标价 ${money(mode.settlementMarkedBase)} - 基础扣点 ${money(mode.baseTax)} = ${money(mode.settlementTaxBase)}</span></div>`
+      : '';
     card.innerHTML = `
       <div class="mode-card-title"><span>${mode.label}</span><span>${chips}</span></div>
       <div class="mode-metrics">
-        <div><div class="metric-label">扣税</div><div class="metric-value">${money(mode.tax)}</div></div>
+        <div><div class="metric-label">扣税</div><div class="metric-value">${money(mode.tax)}</div>${taxBreakdown}</div>
         <div><div class="metric-label">利润</div><div class="metric-value ${mode.profit < 0 ? 'loss' : 'profit'}">${money(mode.profit)}</div></div>
         <div><div class="metric-label">系统/核算成本</div><div class="metric-value">${money(mode.cost)}</div></div>
         <div><div class="metric-label">标价合计</div><div class="metric-value">${money(mode.revenue)}</div></div>
@@ -2224,7 +2325,8 @@ function renderFocusPanel(focus) {
     card.className = `focus-card ${group.marked ? '' : 'empty'}`;
     const rows = ['retailZicai', 'agentSystem', 'agentZicai'].map(modeKey => {
       const mode = group.modes[modeKey];
-      return `<div class="focus-mode-row"><span>${mode.label}</span><span>扣税 <strong>${money(mode.tax)}</strong></span><span>利润 <strong>${money(mode.profit)}</strong></span></div>`;
+      const taxLabel = modeKey === 'retailZicai' ? '扣税' : '基础扣点';
+      return `<div class="focus-mode-row"><span>${mode.label}</span><span>${taxLabel} <strong>${money(mode.tax)}</strong></span><span>利润 <strong>${money(mode.profit)}</strong></span></div>`;
     }).join('');
     card.innerHTML = `
       <div class="focus-card-head">
@@ -2281,7 +2383,7 @@ function updateRowHints(result) {
     if (choiceCell) choiceCell.innerHTML = `<span class="choice-tag choice-zicai">${bestLine.label}</span>`;
     const taxCell = document.getElementById(`tax_${idx}`);
     if (taxCell) {
-      taxCell.innerHTML = `<span class="retail">零售${percent(retail.rate)}</span><br><span class="agent">代理自采${percent(agentZicai.rate)}</span>`;
+      taxCell.innerHTML = buildTaxRateText(retail.rate, agentZicai.rate, agentZicai.rate > 0);
     }
   });
 }
@@ -2302,8 +2404,8 @@ function buildSummary(result) {
     `利润最高：${result.best.profit.label}，利润 ${money(result.best.profit.value)}`,
     '',
     `零售自采：扣税 ${money(retail.tax)}，核算成本 ${money(retail.cost)}，利润 ${money(retail.profit)}`,
-    `代理系统：扣税 ${money(agentSystem.tax)}，系统/核算成本 ${money(agentSystem.cost)}，利润 ${money(agentSystem.profit)}`,
-    `代理自采：扣税 ${money(agentZicai.tax)}，核算成本 ${money(agentZicai.cost)}，利润 ${money(agentZicai.profit)}`,
+    `代理系统：扣税 ${money(agentSystem.tax)}（基础扣点 ${money(agentSystem.baseTax)} + 代理合同 2% 的税金 ${money(agentSystem.settlementTax)}；税基 = 参与2%项目标价 ${money(agentSystem.settlementMarkedBase)} - 基础扣点 ${money(agentSystem.baseTax)} = ${money(agentSystem.settlementTaxBase)}），系统/核算成本 ${money(agentSystem.cost)}，利润 ${money(agentSystem.profit)}`,
+    `代理自采：扣税 ${money(agentZicai.tax)}（基础扣点 ${money(agentZicai.baseTax)} + 代理合同 2% 的税金 ${money(agentZicai.settlementTax)}；税基 = 参与2%项目标价 ${money(agentZicai.settlementMarkedBase)} - 基础扣点 ${money(agentZicai.baseTax)} = ${money(agentZicai.settlementTaxBase)}），核算成本 ${money(agentZicai.cost)}，利润 ${money(agentZicai.profit)}`,
     '',
     '重点利润项：',
     ...focusLines,
